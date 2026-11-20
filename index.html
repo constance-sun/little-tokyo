@@ -1023,6 +1023,8 @@ body.dark{--halo:rgba(255,255,255,.85)}
 .fpanel .fl.fsep{margin-top:12px;padding-top:10px;border-top:1px solid var(--rule)}
 .fpanel .fic.fwait{background:var(--cream-2)}
 .fpanel .frow.dis{opacity:.45}
+.holdmic{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+.holdcard{-webkit-user-select:none;user-select:none}
 
 </style>
 
@@ -1463,11 +1465,13 @@ function buildFilter(){const box=$("#subchips");box.replaceChildren();const type
   const btn=el("button",{class:"fbtn"+(subs.size||waitF!=="any"?" on":""),type:"button","aria-expanded":String(fpOpen),onclick:()=>{fpOpen=!fpOpen;buildFilter()}});
   btn.innerHTML=svgIcon("filter",14,"currentColor");btn.append(el("span",{},"Filter: "+label),el("i",{},fpOpen?"▴":"▾"));box.append(btn);
   if(subs.size||waitF!=="any")box.append(el("button",{class:"fclear",type:"button",onclick:()=>{subs.clear();waitF="any";store.set("lt-subs",[]);refreshPins()}},"Clear"));
-  if(fpOpen){const pnl=el("div",{class:"fpanel"},el("div",{class:"fl"},CATS[filter].label+" types"));
-    types.filter(([k])=>counts[k]).forEach(([k,l,ic])=>{const id="ft-"+k;const row=el("label",{class:"frow",for:id},el("input",{type:"checkbox",id,checked:subs.has(k),onchange:e=>{e.target.checked?subs.add(k):subs.delete(k);store.set("lt-subs",[...subs]);refreshPins()}}),el("span",{class:"fic",style:`background:${CATS[filter].color}`,html:svgIcon(ic,12,"#fff")}),el("span",{},l),el("small",{},String(counts[k])));pnl.append(row)});
-    if(hasWait){pnl.append(el("div",{class:"fl fsep"},"Wait time"));
+  if(fpOpen){const pnl=el("div",{class:"fpanel"});
+    if(hasWait){pnl.append(el("div",{class:"fl"},"Wait time"));
       WAITOPTS.forEach(([k,l])=>{const id="fw-"+k;pnl.append(el("label",{class:"frow"+(k!=="any"&&!waitN[k]?" dis":""),for:id},el("input",{type:"radio",name:"fwait",id,checked:waitF===k,disabled:k!=="any"&&!waitN[k]&&waitF!==k,onchange:()=>{waitF=k;refreshPins()}}),el("span",{class:"fic fwait",html:`<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">${II.hourglass}</svg>`}),el("span",{},l),el("small",{},k==="any"?"":String(waitN[k]))))});
-      pnl.append(el("div",{class:"note",style:"margin:4px 0 8px"},"Busy-time waits from reviews, or live waits posted by the restaurant."))}
+      pnl.append(el("div",{class:"note",style:"margin:4px 0 0"},"Busy-time waits from reviews, or live waits posted by the restaurant."))}
+    pnl.append(el("div",{class:"fl"+(hasWait?" fsep":"")},CATS[filter].label+" types"));
+
+    types.filter(([k])=>counts[k]).forEach(([k,l,ic])=>{const id="ft-"+k;const row=el("label",{class:"frow",for:id},el("input",{type:"checkbox",id,checked:subs.has(k),onchange:e=>{e.target.checked?subs.add(k):subs.delete(k);store.set("lt-subs",[...subs]);refreshPins()}}),el("span",{class:"fic",style:`background:${CATS[filter].color}`,html:svgIcon(ic,12,"#fff")}),el("span",{},l),el("small",{},String(counts[k])));pnl.append(row)});
     pnl.append(el("button",{class:"btn primary",type:"button",onclick:()=>{fpOpen=false;buildFilter()}},"Done"));box.append(pnl)}}
 
 /* filter chips */
@@ -1757,11 +1761,17 @@ function renderPlan(){
   // hold-to-talk shortcut
   const hold=el("button",{class:"holdmic"+(holdMode&&micOn?" on":""),type:"button","aria-label":"Hold to talk"});
   hold.innerHTML='<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>';
-  const holdTxt=el("div",{class:"holdtxt"},el("b",{},holdMode&&micOn?"Listening… let go to plan":"Hold to talk"),el("span",{},holdMode&&micOn?(partial||"Say who you're with, what you love and how long you have."):dict?"Say it instead of filling in the survey.":"Voice works in Chrome and the Claude app."));
-  const startHold=e=>{e.preventDefault();if(!dict){toast("Voice input works in Chrome and the Claude app.");return}holdMode=true;holdBuf="";dict.start().catch(err=>{holdMode=false;if(err&&err.code==="not_granted")toast("Microphone access was declined.")});};
-  const endHold=async()=>{if(!holdMode)return;try{await dict.stop()}catch{}setTimeout(()=>{const said=(holdBuf+" "+partial).trim();holdMode=false;partial="";if(said)send("Plan my day from scratch: "+said,{fromVoice:true});else renderPlan()},250)};
-  hold.addEventListener("pointerdown",startHold);hold.addEventListener("pointerup",endHold);hold.addEventListener("pointerleave",endHold);hold.addEventListener("pointercancel",endHold);
-  hold.addEventListener("keydown",e=>{if((e.key===" "||e.key==="Enter")&&!holdMode)startHold(e)});hold.addEventListener("keyup",e=>{if(e.key===" "||e.key==="Enter")endHold()});
+  const holdTxt=el("div",{class:"holdtxt"},el("b",{},holdMode&&micOn?"Listening… let go to plan":"Hold to talk"),el("span",{},holdMode&&micOn?(partial||"Say who you're with, what you love and how long you have."):dict?"Hold to talk, or tap once to start and again to stop.":"Voice works in Chrome, Safari and the Claude app."));
+  let t0=0;
+  const startHold=e=>{e.preventDefault();if(!dict){toast("Voice input works in Chrome, Safari and the Claude app.");return}
+    if(holdMode&&holdTap){holdTap=false;endHold();return}
+    if(e.pointerId!=null){try{hold.setPointerCapture(e.pointerId)}catch{}}
+    t0=Date.now();holdMode=true;holdTap=false;holdBuf="";partial="";updateHoldUI(true);
+    dict.start().catch(err=>{holdMode=false;holdTap=false;updateHoldUI(false);toast(err&&err.code==="not_granted"?"Microphone access was declined. Allow the mic, or use the survey below.":"Couldn't start the mic. Try again, or use the survey below.")})};
+  const release=()=>{if(!holdMode||holdTap)return;if(Date.now()-t0<450){holdTap=true;updateHoldUI(true);return}endHold()};
+  hold.addEventListener("pointerdown",startHold);hold.addEventListener("pointerup",release);hold.addEventListener("pointercancel",release);
+  hold.addEventListener("contextmenu",e=>e.preventDefault());
+  hold.addEventListener("keydown",e=>{if((e.key===" "||e.key==="Enter")&&!e.repeat){e.preventDefault();if(holdMode)endHold();else{startHold(e);holdTap=true;updateHoldUI(true)}}});
   pad.append(el("div",{class:"holdcard"},hold,holdTxt));
   // survey
   const card=el("div",{class:"card survey"},stepper());
@@ -1800,7 +1810,13 @@ function renderPlan(){
     partial&&!holdMode?el("div",{class:"partial"},partial):null,el("div",{class:"chatin"},mic,input,sendB)));
   setTimeout(()=>{const l=$("#chatlog");if(l)l.scrollTop=l.scrollHeight},0);
 }
-let holdBuf="";
+let holdBuf="",holdTap=false;
+async function endHold(){if(!holdMode)return;holdTap=false;updateHoldUI(true,"Got it, planning…");try{await dict.stop()}catch{}
+  setTimeout(()=>{const said=(holdBuf+" "+partial).trim();holdMode=false;partial="";
+    if(said)send("Plan my day from scratch: "+said,{fromVoice:true});else{renderPlan();toast("I didn't catch that. Hold the mic and speak a bit longer.")}},350)}
+function updateHoldUI(on,title){const b=document.querySelector(".holdmic"),t=document.querySelector(".holdtxt");if(!b||!t)return;b.classList.toggle("on",!!on);
+  t.querySelector("b").textContent=title||(on?(holdTap?"Listening… tap again when done":"Listening… let go to plan"):"Hold to talk");
+  t.querySelector("span").textContent=on?((holdBuf+" "+partial).trim()||"Say who you're with, what you love and how long you have."):(dict?"Hold to talk, or tap once to start and again to stop.":"Voice works in Chrome, Safari and the Claude app.")}
 function planCard(plan,main){const stops=plan.stops.filter(s=>BY[s.id]);let prev=me;let tot=0;const park=plan.park&&BY[plan.park];
   const card=el("div",{class:main?"card plancard main":"plancard"},el("div",{class:"pth"},el("b",{class:"pt"},plan.title||"Your day"),plan.date?el("span",{class:"note"},new Date(plan.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})):null));
   if(park){prev=park;card.append(el("div",{class:"stop parkstop"},el("span",{class:"num pk"},"P"),el("div",{},el("div",{class:"t"},"Park first"),el("b",{},park.name),el("p",{},park.ratesShort||park.rates||"Rates not confirmed"))))}
@@ -1819,9 +1835,9 @@ function bubble(m){if(m.role==="user")return el("div",{class:"bub u"},m.text);
   const b=el("div",{class:"bub a"},m.text?el("div",{},m.text):null);if(m.plan&&m.plan.stops&&m.plan.stops.length&&m.plan!==curPlan)b.append(el("div",{class:"note"},"Plan updated above."));return b}
 async function toggleMic(){if(!dict){toast("Voice input works in Chrome and the Claude app. You can type instead.");return}if(micOn){try{await dict.stop()}catch{}return}holdMode=false;dict.start().catch(e=>{if(e&&e.code==="not_granted")toast("Microphone access was declined. You can type instead.")})}
 function wireDictation(){if(!dict)return;
-  dict.onPartial(({text})=>{partial=text;const t=document.querySelector(holdMode?".holdtxt span":".partial");if(t)t.textContent=text;else if(text&&!holdMode)renderPlanKeep()});
-  dict.onFinal(({text})=>{if(holdMode){holdBuf=(holdBuf+" "+text).trim();partial="";const t=document.querySelector(".holdtxt span");if(t)t.textContent=holdBuf;return}const i=$("#chatIn");if(i)i.value=(i.value?i.value.trimEnd()+" ":"")+text.trim();partial="";document.querySelector(".partial")?.remove()});
-  dict.onState(({state})=>{micOn=state!=="idle";renderPlanKeep()})}
+  dict.onPartial(({text})=>{partial=text;if(holdMode){updateHoldUI(true,document.querySelector(".holdtxt b")?.textContent);return}const t=document.querySelector(".partial");if(t)t.textContent=text;else if(text)renderPlanKeep()});
+  dict.onFinal(({text})=>{if(holdMode){holdBuf=(holdBuf+" "+text).trim();partial="";updateHoldUI(true,document.querySelector(".holdtxt b")?.textContent);return}const i=$("#chatIn");if(i)i.value=(i.value?i.value.trimEnd()+" ":"")+text.trim();partial="";document.querySelector(".partial")?.remove()});
+  dict.onState(({state})=>{micOn=state!=="idle";if(holdMode)return;renderPlanKeep()})}
 function renderPlanKeep(){if(current!=="plan")return;const v=$("#chatIn")?.value||"";renderPlan();const i=$("#chatIn");if(i)i.value=v}
 async function send(text,opts={}){
   const i=$("#chatIn");text=(text??i?.value??"").trim();if(!text||busy)return;if(micOn&&dict&&!opts.fromVoice){try{await dict.stop()}catch{}}
