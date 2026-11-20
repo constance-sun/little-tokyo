@@ -2093,7 +2093,7 @@ if(SITE_URL&&!SITE_URL.startsWith("__"))try{new QRCode($("#qr"),{text:SITE_URL,w
 (async()=>{try{sample=window.claude&&await window.claude.use("sample")}catch{sample=null}try{dict=window.claude&&await window.claude.use("dictation")}catch{dict=null}
   if(!dict)dict=browserDictation();wireDictation();if(current==="plan")renderPlanKeep()})();
 applyTheme();$("#themeBtn").onclick=()=>setTheme(document.body.classList.contains("dark")?"light":"dark");$("#acctBtn").innerHTML=svgIcon("user",17,"currentColor");
-frame();buildChips();buildPins();drawMe();show(location.hash.slice(1)||"home");setSheet(0);
+frame();buildChips();buildPins();drawMe();if(location.hash){try{history.replaceState(null,"",location.pathname+location.search)}catch{}}show("home");setSheet(0);
 measure();cam.z=ZMIN();cam.cx=(BX0+BX1)/2;cam.cy=(BY0+BY1)/2;render();
 let introDone=false;function mapIntro(){if(introDone)return;introDone=true;setTimeout(()=>flyTo(-30,15,Math.max(ZMIN()*1.9,W/330),reduce?0:1500),250)}
 if(current==="map")mapIntro();
