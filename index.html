@@ -970,6 +970,56 @@ body.dark{--halo:rgba(255,255,255,.85)}
 .evcard2 .evtop .unc{background:rgba(0,0,0,.6)}
 .evcard2 b,.evcard2 .evwhen{text-shadow:0 1px 6px rgba(0,0,0,.8)}
 
+/* ---------- Legacy: poster timeline ---------- */
+#legacyPad::before{content:none}
+.lghead{position:relative;margin-right:0!important}
+.lgkanji{position:absolute;right:0;top:2px;writing-mode:horizontal-tb;direction:ltr;unicode-bidi:isolate;font-family:"Zen Kaku Gothic New",sans-serif;font-weight:900;font-size:50px;line-height:1;letter-spacing:-.02em;color:var(--lantern);pointer-events:none}
+.lghead .h1{font-size:46px;line-height:.95;letter-spacing:-.05em;margin:6px 70px 8px 0}
+.lghead .lede{margin-right:80px}
+.lgstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:2px solid var(--cream);border-bottom:1px solid var(--rule);margin:18px 0 16px}
+.lgstats>div{padding:10px 8px 10px 0}
+.lgstats>div+div{border-left:1px solid var(--rule);padding-left:10px}
+.lgstats b{display:block;font-family:"Archivo",sans-serif;font-weight:900;font-size:28px;letter-spacing:-.04em;line-height:1;color:var(--lantern)}
+.lgstats small{display:block;font-size:11px;line-height:1.25;color:var(--dim);margin-top:4px}
+.lgfeat{position:relative;display:block;width:100%;border:0;padding:0;background:var(--panel);text-align:left;color:var(--cream);cursor:pointer;margin-bottom:14px}
+.lgfim{display:block;height:230px;background-size:cover;background-position:center}
+.lgfyr{position:absolute;left:12px;top:150px;font-family:"Archivo",sans-serif;font-weight:900;font-size:84px;letter-spacing:-.06em;line-height:1;color:var(--lantern);text-shadow:0 0 0 transparent;-webkit-text-stroke:0}
+.lgftx{display:block;padding:34px 14px 14px;border:1px solid var(--rule);border-top:0}
+.lgftx small{display:block;font-family:var(--f-label);font-weight:600;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim)}
+.lgftx b{display:block;font-family:"Archivo",sans-serif;font-weight:800;font-size:24px;letter-spacing:-.03em;margin:4px 0 6px}
+.lgfst{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:13.5px;line-height:1.45;color:var(--cream-2)}
+.lgfcta{display:inline-block;margin-top:10px;font-weight:700;font-size:13px;color:var(--lantern)}
+.lgjump{position:sticky;top:0;z-index:3;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 6px;padding:10px 16px;background:var(--night);border-bottom:1px solid var(--rule)}
+.lgjump::-webkit-scrollbar{display:none}
+.lgjump button{flex:0 0 auto;border:1px solid var(--cream);background:transparent;color:var(--cream);font-family:"Archivo",sans-serif;font-weight:700;font-size:12px;padding:5px 11px;border-radius:999px;cursor:pointer}
+.lgjump button:active{background:var(--lantern);border-color:var(--lantern);color:#fff}
+.lgtl{position:relative;padding-left:22px}
+.lgtl::before{content:"";position:absolute;left:6px;top:8px;bottom:8px;width:2px;background:var(--lantern)}
+.lgdot{position:absolute;left:-21px;top:16px;width:12px;height:12px;border-radius:50%;background:var(--night);border:2px solid var(--lantern)}
+.lgdot.big{top:10px;left:-24px;width:18px;height:18px;background:var(--lantern)}
+.lgdec{position:relative;padding:18px 0 6px;scroll-margin-top:56px}
+.lgdec b{font-family:"Archivo",sans-serif;font-weight:900;font-size:34px;letter-spacing:-.05em;line-height:1}
+.lgdec p{margin:4px 0 0;font-size:12.5px;color:var(--dim);line-height:1.4}
+.lgdec.fav{margin-top:14px;border-top:2px solid var(--cream);padding-top:14px}
+.lgdec.fav b{font-size:24px}
+.lgrow{position:relative;display:grid;grid-template-columns:76px minmax(0,1fr);gap:12px;width:100%;border:0;border-bottom:1px solid var(--rule);background:none;padding:12px 0;text-align:left;color:var(--cream);cursor:pointer}
+.lgthumb{width:76px;height:76px;display:grid;place-items:center;overflow:hidden}
+.lgthumb img,.lgfavim img{width:100%;height:100%;object-fit:cover;display:block}
+.lgtx{min-width:0}
+.lgy{display:flex;align-items:baseline;gap:8px;font-family:"Archivo",sans-serif;font-weight:900;font-size:20px;letter-spacing:-.04em;color:var(--lantern);line-height:1}
+.lgy em{font-style:normal;font-family:var(--f-label);font-weight:600;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+.lgtx b{display:block;font-family:"Archivo",sans-serif;font-weight:800;font-size:16px;letter-spacing:-.02em;margin-top:3px}
+.lgtx small{display:block;font-size:12px;color:var(--dim)}
+.lgst{display:block;font-size:12.5px;line-height:1.4;color:var(--cream-2);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.lgrow.closed .lgthumb{filter:grayscale(1);opacity:.7}
+.lgrow.closed .lgy em{color:var(--lantern)}
+.lgfavs{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:10px 0 0;padding:0 0 4px;scroll-snap-type:x mandatory}
+.lgfavs::-webkit-scrollbar{display:none}
+.lgfav{flex:0 0 140px;scroll-snap-align:start;border:0;background:none;padding:0;text-align:left;color:var(--cream);cursor:pointer}
+.lgfavim{display:grid;place-items:center;width:140px;height:150px;overflow:hidden;margin-bottom:6px}
+.lgfav b{display:block;font-family:"Archivo",sans-serif;font-weight:800;font-size:14px;letter-spacing:-.02em;line-height:1.15}
+.lgfav small{display:block;font-size:11.5px;color:var(--dim);margin-top:2px}
+
 </style>
 
 <div id="stage">
@@ -1910,21 +1960,52 @@ matchMedia("(prefers-color-scheme: dark)").addEventListener("change",applyTheme)
 new MutationObserver(applyTheme).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
 
 /* ======================================================================
-   LEGACY
+   LEGACY: a poster-style timeline. Stats band, the oldest shop as a feature,
+   decade jump bar, a red timeline by decade, then long-time favorites.
    ====================================================================== */
+const ERA_NOTES={1900:"Little Tokyo grows into the center of Japanese American life in Los Angeles.",1940:"After WWII incarceration (1942–45), families come back and start over.",1970:"Redevelopment years. Japanese Village Plaza opens in 1978."};
+function legacyThumb(p,cls){const ph=p.photos[0];const t=el("span",{class:cls,style:ph?"":`background:var(--c-${p.cat},#777)`});
+  if(ph)t.append(el("img",{src:ph.src,alt:p.name,loading:"lazy"}));else t.append(glyphEl(p,cls==="lgthumb"?30:46));return t}
+const goPlace=p=>()=>{location.hash="map";setTimeout(()=>openPlace(p),80)};
 function renderLegacy(){
   const pad=$("#legacyPad");pad.replaceChildren();
-  const L=[...LEGACY].sort((a,b)=>(a.since||9999)-(b.since||9999));
-  const hero=(PHOTOS._hero||[])[0]; if(hero) pad.append(el("figure",{style:"margin:-16px -16px 14px;height:170px;position:relative;overflow:hidden"},el("img",{src:hero.src,alt:"Little Tokyo street",style:"width:100%;height:100%;object-fit:cover"}),el("figcaption",{style:"position:absolute;right:8px;bottom:6px;font-size:10px;color:#fff;text-shadow:0 1px 2px #000"},(hero.author||"")+" · "+(hero.license||""))));
-  pad.append(el("h1",{class:"h1"},"Legacy businesses"),
-    el("p",{class:"lede"},"Family-run shops and restaurants that have kept Little Tokyo going for generations."));
-  if(!L.length) pad.append(el("div",{class:"empty"},"Legacy business list is loading."));
-  L.forEach(p=>{const ph=p.photos[0];pad.append(el("button",{class:"lcard",type:"button",onclick:()=>{location.hash="map";setTimeout(()=>openPlace(p),80)}},
-    el("div",{class:"im",style:ph?"":`background:linear-gradient(135deg,${CATS[p.cat].color},#1f2f5e)`},ph?el("img",{src:ph.src,alt:p.name,loading:"lazy"}):glyphEl(p,40),p.since?el("span",{class:"yr"},p.since):null),
-    el("div",{class:"tx"},el("h3",{},p.name),el("p",{},[p.type,p.since?`${new Date().getFullYear()-p.since} years in Little Tokyo`:null].filter(Boolean).join(" · ")),p.story?el("p",{},p.story.split(/(?<=\.)\s/)[0]):null)))});
-  pad.append(el("p",{class:"note",style:"margin-top:16px"},"Legacy status from the Little Tokyo Historical Society and Little Tokyo Service Center lists."));
+  const yr=new Date().getFullYear();
+  const dated=[...LEGACY].filter(p=>p.since).sort((a,b)=>a.since-b.since);
+  const undated=LEGACY.filter(p=>!p.since).sort((a,b)=>a.name.localeCompare(b.name));
+  if(!LEGACY.length){pad.append(el("div",{class:"empty"},"Legacy business list is loading."));return}
+  const first=dated[0];
+  pad.append(el("div",{class:"kicker"},"04 · LEGACY"),
+    el("div",{class:"lghead"},el("span",{class:"lgkanji","aria-hidden":"true"},"老舗"),el("h1",{class:"h1"},"Still here."),
+      el("p",{class:"lede"},"Family-run shops and restaurants that have kept Little Tokyo going for generations.")));
+  const pre60=dated.filter(p=>p.since<1960).length;
+  pad.append(el("div",{class:"lgstats"},
+    el("div",{},el("b",{},String(LEGACY.length)),el("small",{},"legacy businesses")),
+    first?el("div",{},el("b",{},String(first.since)),el("small",{},"oldest, "+first.name)):null,
+    el("div",{},el("b",{},String(pre60)),el("small",{},"opened before 1960"))));
+  if(first){const ph=first.photos[0];
+    pad.append(el("button",{class:"lgfeat",type:"button",onclick:goPlace(first)},
+      el("span",{class:"lgfim",style:ph?`background-image:url(${ph.src})`:`background:var(--c-${first.cat})`}),
+      el("span",{class:"lgfyr"},String(first.since)),
+      el("span",{class:"lgftx"},el("small",{},"The oldest · "+(yr-first.since)+" years"),el("b",{},first.name),
+        first.story?el("span",{class:"lgfst"},first.story):null,el("span",{class:"lgfcta"},"See on the map →"))))}
+  const decades=[...new Set(dated.map(p=>Math.floor(p.since/10)*10))];
+  pad.append(el("div",{class:"lgjump"},...decades.map(d=>el("button",{type:"button",onclick:()=>{const t=document.getElementById("dec"+d);if(t)t.scrollIntoView({behavior:"smooth",block:"start"})}},d+"s")),
+    undated.length?el("button",{type:"button",onclick:()=>document.getElementById("decfav")?.scrollIntoView({behavior:"smooth",block:"start"})},"Favorites"):null));
+  const tl=el("div",{class:"lgtl"});
+  decades.forEach(d=>{
+    tl.append(el("div",{class:"lgdec",id:"dec"+d},el("span",{class:"lgdot big"}),el("b",{},d+"s"),ERA_NOTES[d]?el("p",{},ERA_NOTES[d]):null));
+    dated.filter(p=>Math.floor(p.since/10)*10===d).forEach(p=>{const closed=p.status==="closed_permanently";
+      tl.append(el("button",{class:"lgrow"+(closed?" closed":""),type:"button",onclick:goPlace(p)},el("span",{class:"lgdot"}),
+        legacyThumb(p,"lgthumb"),
+        el("span",{class:"lgtx"},el("span",{class:"lgy"},String(p.since),el("em",{},closed?"Closed":(yr-p.since)+" yrs")),el("b",{},p.name),el("small",{},p.type||""),
+          p.story?el("span",{class:"lgst"},p.story):null)))})});
+  pad.append(tl);
+  if(undated.length){
+    pad.append(el("div",{class:"lgdec fav",id:"decfav"},el("b",{},"Long-time favorites"),el("p",{},"Legacy-listed, opening year still being confirmed.")),
+      el("div",{class:"lgfavs"},...undated.map(p=>el("button",{class:"lgfav",type:"button",onclick:goPlace(p)},legacyThumb(p,"lgfavim"),el("b",{},p.name),el("small",{},p.type||"")))));
+  }
+  pad.append(el("p",{class:"note",style:"margin-top:18px"},"Legacy status from the Little Tokyo Historical Society and Little Tokyo Service Center lists."));
 }
-
 
 
 /* ======================================================================
