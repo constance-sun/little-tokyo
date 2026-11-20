@@ -1048,6 +1048,21 @@ body.dark{
 .holdmic{box-shadow:none!important}
 .bub.a{background:var(--panel-2)!important;border-radius:2px!important}
 
+/* ---------- calendar reads as a calendar: ruled grid, tinted cells ---------- */
+.cal{gap:0!important;border:1px solid var(--cream);border-top:2px solid var(--cream);background:var(--panel)}
+.cal .dow{padding:7px 0!important;font-size:10px!important;letter-spacing:.14em;color:var(--cream)!important;font-weight:700;border-bottom:1px solid var(--cream);background:var(--panel-2)}
+.cal button{aspect-ratio:auto!important;height:58px;border-radius:0!important;background:var(--panel)!important;border-right:1px solid var(--rule)!important;border-bottom:1px solid var(--rule)!important;justify-content:flex-start!important;align-items:flex-start!important;padding:5px 6px!important;gap:4px!important;box-shadow:none!important;color:var(--cream)!important}
+.cal button:nth-child(7n){border-right:0!important}
+.cal button.out{visibility:visible!important;background:var(--panel-2)!important}
+.cal button:nth-child(7n+1):not(.out),.cal button:nth-child(7n):not(.out){background:color-mix(in srgb,var(--panel-2) 55%,var(--panel))!important}
+.cal .dn{font-size:13px;font-weight:700;line-height:1}
+.cal button.has .dn{color:var(--cream)}
+.cal button:not(.has):not(.out) .dn{color:var(--faint)}
+.cal button.today .dn{background:var(--lantern);color:#fff!important;border-radius:50%;width:20px;height:20px;display:grid;place-items:center;margin:-3px 0 0 -3px}
+.cal button.sel{outline:2px solid var(--lantern);outline-offset:-2px;background:var(--lantern-soft)!important}
+.cal button.sel .ds .more{color:var(--dim)!important}
+.cal .ds{flex-wrap:wrap}
+
 </style>
 
 <div id="stage">
