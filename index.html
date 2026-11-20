@@ -1029,6 +1029,25 @@ body.dark{--halo:rgba(255,255,255,.85)}
 body.light{--grain:rgba(90,80,66,.22)}
 body.dark{--grain:rgba(255,255,255,.07)}
 
+/* ---------- crisp paper + ink palette (less warm-beige) ---------- */
+body.light{
+  --night:#ffffff; --night-2:#f4f4f3; --panel:#ffffff; --panel-2:#f2f2f1; --rule:#e3e3e3; --glass:rgba(255,255,255,.96);
+  --cream:#0e0e0e; --cream-2:#2e2e2e; --dim:#6a6a6a; --faint:#9c9c9c;
+  --red:#d42a1e; --lantern:#d42a1e; --lantern-soft:rgba(212,42,30,.08); --sun:#d42a1e;
+  --ground:#f1f1ef; --block:#f1f1ef; --street:#ffffff; --casing:#dadada; --plaza:#f4ebe1; --plaza-walk:#f6efe7; --green:#e0e8d8; --lot:#e9e9e7; --lot-edge:#d0d0ce; --label:#6a6a6a;
+  --bldg:#e4e4e2; --bldg-edge:#c9c9c7; --bldg-off:#ececea;
+}
+body.dark{
+  --night:#0f0f0f; --night-2:#161616; --panel:#1a1a1a; --panel-2:#232323; --rule:#2e2e2e; --glass:rgba(22,22,22,.95);
+  --cream:#f2f2f2; --cream-2:#cfcfcf; --dim:#959595; --faint:#6d6d6d;
+  --ground:#141414; --block:#141414; --street:#2c2c2c; --casing:#0a0a0a; --label:#a8a8a8;
+  --bldg:#262626; --bldg-edge:#393939; --bldg-off:#1b1b1b;
+}
+/* flat cards: hairline rules, no tinted boxes */
+.card,.holdcard,.fpanel,.evfacts,.empty,.results{background:var(--panel)!important;border:1px solid var(--rule)!important;border-radius:2px!important}
+.holdmic{box-shadow:none!important}
+.bub.a{background:var(--panel-2)!important;border-radius:2px!important}
+
 </style>
 
 <div id="stage">
@@ -1472,7 +1491,7 @@ function buildFilter(){const box=$("#subchips");box.replaceChildren();const type
   if(fpOpen){const pnl=el("div",{class:"fpanel"});
     if(hasWait){pnl.append(el("div",{class:"fl"},"Wait time"));
       WAITOPTS.forEach(([k,l])=>{const id="fw-"+k;pnl.append(el("label",{class:"frow"+(k!=="any"&&!waitN[k]?" dis":""),for:id},el("input",{type:"radio",name:"fwait",id,checked:waitF===k,disabled:k!=="any"&&!waitN[k]&&waitF!==k,onchange:()=>{waitF=k;refreshPins()}}),el("span",{class:"fic fwait",html:`<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">${II.hourglass}</svg>`}),el("span",{},l),el("small",{},k==="any"?"":String(waitN[k]))))});
-      pnl.append(el("div",{class:"note",style:"margin:4px 0 0"},"Based on usual busy-time waits from reviews, or a live wait posted by the restaurant. Places with no wait info are hidden when you pick a time."))}
+      pnl.append(el("div",{class:"note",style:"margin:4px 0 0"},"Busy-time waits, from reviews and owners."))}
     pnl.append(el("div",{class:"fl"+(hasWait?" fsep":"")},CATS[filter].label+" types"));
 
     types.filter(([k])=>counts[k]).forEach(([k,l,ic])=>{const id="ft-"+k;const row=el("label",{class:"frow",for:id},el("input",{type:"checkbox",id,checked:subs.has(k),onchange:e=>{e.target.checked?subs.add(k):subs.delete(k);store.set("lt-subs",[...subs]);refreshPins()}}),el("span",{class:"fic",style:`background:${CATS[filter].color}`,html:svgIcon(ic,12,"#fff")}),el("span",{},l),el("small",{},String(counts[k])));pnl.append(row)});
@@ -1480,14 +1499,14 @@ function buildFilter(){const box=$("#subchips");box.replaceChildren();const type
 
 /* filter chips */
 const CHIPS=[["all","All",null],["eat","Eat","dining"],["shop","Shop","shop"],["explore","Explore","temple"],["legacy","Legacy","star"],["open","Open now",null],["park","Parking","park"],["wc","Restrooms","wc"],["closed","Closed / moved",null]];
-function buildChips(){$("#chips").replaceChildren(...CHIPS.map(([k,l,ic])=>{const b=el("button",{class:"chip"+(k==="legacy"?" gold":""),type:"button","aria-pressed":String(filter===k),onclick:()=>{filter=filter===k&&k!=="all"?"all":k;subs.clear();waitF="any";fpOpen=false;store.set("lt-filter",filter);store.set("lt-subs",[]);buildChips();refreshPins();if(filter==="park")toast("Parking garages and lots are lit up. Tap one for rates.");if(filter==="wc")toast("Restrooms are lit up. Tap one for access details.");
+function buildChips(){$("#chips").replaceChildren(...CHIPS.map(([k,l,ic])=>{const b=el("button",{class:"chip"+(k==="legacy"?" gold":""),type:"button","aria-pressed":String(filter===k),onclick:()=>{filter=filter===k&&k!=="all"?"all":k;subs.clear();waitF="any";fpOpen=false;store.set("lt-filter",filter);store.set("lt-subs",[]);buildChips();refreshPins();if(filter==="park")toast("Tap a garage for rates.");if(filter==="wc")toast("Tap one for access.");
     if(k==="open")toast(`${PLACES.filter(p=>POI(p)&&isOpen(p)).length} places open right now`)}});
   if(ic){const s=document.createElement("span");s.innerHTML=svgIcon(ic,14,filter===k?"currentColor":(CATS[k]||{}).color||"currentColor");b.append(s)}b.append(l);return b}))}
 
 /* where am I */
 let me=store.get("lt-me3",null)||{x:BY.metro.x,y:BY.metro.y,label:"Metro station"},meEl=null,pickMode=false;
 function drawMe(){if(meEl)meEl.remove();meEl=el("div",{class:"me"},el("span",{},me.label==="Metro station"?"Start: Metro":"You"));pinsEl.append(meEl);render()}
-function setMe(x,y){me={x,y,label:"You are here"};store.set("lt-me3",me);walkCache.clear();drawMe();toast("Start point set. Walking times now start here.");if(selected)renderSheet()}
+function setMe(x,y){me={x,y,label:"You are here"};store.set("lt-me3",me);walkCache.clear();drawMe();toast("Start point set.");if(selected)renderSheet()}
 $("#fabMe").onclick=()=>{pickMode=true;toast("Tap the map where you are")};
 
 /* ======================================================================
@@ -1505,7 +1524,7 @@ function waitSummary(p){if(p.status==="closed_permanently"||p.status==="moved")r
   if(w.typical_wait_max)return{t:`Usually ${w.typical_wait_min??0}–${w.typical_wait_max}${w.typical_wait_max>=60||w.over?"+":""} min at busy times`,sub:[w.peak?"Busiest: "+w.peak:null,w.offpeak_tip].filter(Boolean).join(" · ")};
   if(w.popular)return{t:"Popular · expect a line at busy times",sub:[w.peak?"Busiest: "+w.peak:null,w.offpeak_tip].filter(Boolean).join(" · ")};
   return null}
-async function postWait(p,minutes){if(!db){toast("Owner updates work when this page is opened in Claude with edit access");return}
+async function postWait(p,minutes){if(!db){toast("Owner tools aren't live yet");return}
   try{if(minutes==null)await db.doc("waits/"+p.id).delete();else await db.doc("waits/"+p.id).set({minutes,at:Date.now()});toast(minutes==null?"Wait time cleared":"Wait time posted. Visitors see it now.")}
   catch(e){toast(e&&e.code==="not_granted"||e&&e.code==="permission_denied"?"Only business owners with edit access can post wait times":"Couldn't post the wait time. Try again.")}}
 
@@ -1543,7 +1562,7 @@ function renderSheet(){
       act("Directions","dir",()=>startDirections(p),true),
       p.cat!=="park"?act("Parking","park",()=>showNearest(p,"park")):null,
       p.cat!=="wc"?act("Restroom","wc",()=>showNearest(p,"wc")):null,
-      act(saved.has(p.id)?"Saved":"Save","save",()=>{if(!acct.type&&!saved.has(p.id))toast("Saved on this device. Create an account to keep it everywhere.");saved.has(p.id)?saved.delete(p.id):saved.add(p.id);store.set("lt-saved",[...saved]);persist();renderSheet();toast(saved.has(p.id)?"Saved to your list":"Removed from your list")},false,saved.has(p.id)),
+      act(saved.has(p.id)?"Saved":"Save","save",()=>{if(!acct.type&&!saved.has(p.id))toast("Saved on this phone.");saved.has(p.id)?saved.delete(p.id):saved.add(p.id);store.set("lt-saved",[...saved]);persist();renderSheet();toast(saved.has(p.id)?"Saved to your list":"Removed from your list")},false,saved.has(p.id)),
       act("Copy","copy",()=>copy(p.name+", "+(p.address||"Little Tokyo, Los Angeles"),"Address copied"))));
   if(["park","wc","metro"].includes(p.cat)){sbody.append(simpleInfo(p));return}
   const tabs=el("div",{class:"tabs",role:"tablist"},...[["overview","Overview"],["about","About"],["story","Their story"]].map(([k,l])=>el("button",{type:"button",role:"tab","aria-selected":String(tab===k),onclick:()=>{tab=k;renderSheet();sbody.scrollTop=sbody.querySelector(".tabs").offsetTop-4}},l)));
@@ -1564,7 +1583,7 @@ function overview(p){const out=[];const{d}=laNow();
       w&&w.sources&&w.sources[0]&&!(ws&&ws.live)?el("small",{},"Source: ",el("a",{href:w.sources[0],target:"_blank",rel:"noopener"},domain(w.sources[0]))):null]))}
   if(p.hours){const tb=el("table",{class:"hours"});[1,2,3,4,5,6,0].forEach(i=>tb.append(el("tr",{class:i===d?"today":""},el("td",{},DAYN[DAYS[i]]),el("td",{},hoursText(p.hours[DAYS[i]])))));
     out.push(irow("clock",[el("span",{class:"open "+openState(p).k},openState(p).t),tb,p.hoursSource?el("small",{},"Hours from "+domain(p.hoursSource)+", checked Nov 2026. Confirm before you go."):null]))}
-  else out.push(irow("clock",[p.hoursNote||"Hours not confirmed yet",el("small",{},"Call or check their website before you go.")]));
+  else out.push(irow("clock",[p.hoursNote||"Hours not confirmed yet",el("small",{},"Call ahead.")]));
   if(p.admission)out.push(irow("ticket",p.admission));
   if(p.phone)out.push(irow("phone",p.phone,el("button",{class:"minibtn",type:"button",onclick:()=>copy(p.phone,"Phone number copied")},"Copy")));
   if(p.website)out.push(irow("web",el("a",{href:p.website,target:"_blank",rel:"noopener"},domain(p.website))));
@@ -1579,14 +1598,14 @@ function overview(p){const out=[];const{d}=laNow();
 function ownerBox(p){const lw=liveWait(p);
   return el("div",{class:"ownerbox"},el("b",{},"Own this restaurant?"),el("span",{},"Post your current wait so visitors can plan. "+(lw?`Showing ~${lw.minutes} min, posted ${ago(lw.at)}.`:"")),
     el("div",{class:"waitbtns"},...[0,10,20,30,45,60].map(m=>el("button",{type:"button",onclick:()=>postWait(p,m)},m===0?"No wait":m===60?"60+ min":m+" min")),lw?el("button",{type:"button",class:"clr",onclick:()=>postWait(p,null)},"Clear"):null),
-    canPost===false||!db?el("small",{},"Posting needs edit access to this site (business owners get it from the project team)."):null)}
+    canPost===false||!db?el("small",{},"Owner tools aren't live yet."):null)}
 function about(p){return[el("p",{style:"margin:12px 0 4px;font-size:14.5px"},p.desc||"Description coming soon."),
   p.knownFor&&p.knownFor.length?el("div",{},el("div",{class:"fl",style:"margin-top:10px"},"Known for"),el("div",{class:"knows"},...p.knownFor.map(k=>el("span",{},k)))):null,
   p.since?irow("store",["In Little Tokyo since "+p.since,el("small",{},`About ${new Date().getFullYear()-p.since} years`)]):null,
   p.sources&&p.sources.length?el("div",{class:"note",style:"margin-top:12px"},"Sources: ",...p.sources.slice(0,3).flatMap((s,i)=>[i?", ":"",el("a",{href:s,target:"_blank",rel:"noopener",style:"color:inherit"},domain(s))])):null]}
 function storyTab(p){return[p.story?el("div",{class:"story"},el("h4",{},p.legacy?"A Little Tokyo legacy business":"Their story"),el("p",{},p.story),p.storySource?el("div",{class:"src"},"Source: ",el("a",{href:p.storySource,target:"_blank",rel:"noopener",style:"color:inherit"},domain(p.storySource))):null)
-  :el("div",{class:"story"},el("h4",{},"Their story"),el("p",{},"We haven't gathered this business's history yet.")),
-  el("div",{class:"owner"},el("b",{},"A note from the owner"),"Coming soon. Our ACAD-376 team is visiting Little Tokyo businesses to collect a few words from each owner in their own voice.")]}
+  :el("div",{class:"story"},el("h4",{},"Their story"),el("p",{},"No story yet.")),
+  el("div",{class:"owner"},el("b",{},"A note from the owner"),"Owner stories coming soon.")]}
 function simpleInfo(p){const rows=[];
   if(p.address)rows.push(irow("pin",p.address));if(p.desc)rows.push(el("p",{style:"margin:10px 0"},p.desc));
   if(p.rateList&&p.rateList.length){const tb=el("table",{class:"hours rates"});p.rateList.forEach(r=>tb.append(el("tr",{},el("td",{},r.label),el("td",{},r.price))));rows.push(irow("ticket",[el("b",{},"Rates"),tb,el("small",{},(p.rateSrc?"From "+domain(p.rateSrc):"As published")+(p.rateDate&&p.rateDate!=="undated"?", "+p.rateDate:"")+(p.rateConf==="third-party listing"?" (third-party listing)":"")+". Confirm on site.")]))}
@@ -1656,7 +1675,7 @@ function renderEvents(){
   const pad=$("#eventsPad");pad.replaceChildren();
   const todayIso=new Date().toLocaleDateString("en-CA",{timeZone:"America/Los_Angeles"});
   if(!calMonth){calMonth=todayIso.slice(0,7);calSel=todayIso}
-  pad.append(el("div",{class:"kicker"},"02 · EVENTS"),el("h1",{class:"h1"},"What's on"),el("p",{class:"lede"},"Festivals, pop-ups, music, theater and exhibits in Little Tokyo."));
+  pad.append(el("div",{class:"kicker"},"02 · EVENTS"),el("h1",{class:"h1"},"What's on"),el("p",{class:"lede"},"Festivals, pop-ups, shows."));
   pad.append(el("div",{class:"chips evchips"},...[["all","All",null],...Object.entries(ECAT).map(([k,v])=>[k,v[0],k])].map(([k,l,c])=>{const b=el("button",{class:"chip",type:"button","aria-pressed":String(evFilter===k),onclick:()=>{evFilter=k;renderEvents()}});if(c)b.append(evIcon(c,11));b.append(l);return b})));
   const[Y,Mo]=calMonth.split("-").map(Number);const first=new Date(Date.UTC(Y,Mo-1,1));const days=new Date(Date.UTC(Y,Mo,0)).getUTCDate();
   const shift=k=>{calMonth=iso(new Date(Date.UTC(Y,Mo-1+k,1))).slice(0,7);renderEvents()};
@@ -1670,7 +1689,7 @@ function renderEvents(){
   pad.append(cal);
   const selEv=list.filter(e=>evOn(e,calSel));
   pad.append(el("div",{class:"sect"},fmtDay(calSel,{weekday:"long",month:"long",day:"numeric"})));
-  pad.append(selEv.length?el("div",{class:"evgrid"},...selEv.map(evCard)):el("div",{class:"empty"},"Nothing listed for this day. Days with icons have events."));
+  pad.append(selEv.length?el("div",{class:"evgrid"},...selEv.map(evCard)):el("div",{class:"empty"},"Nothing on. Pick a day with a dot."));
   const upcoming=list.filter(e=>(e.end||e.start)>=todayIso).sort((a,b)=>a.start.localeCompare(b.start)).slice(0,14);
   pad.append(el("div",{class:"sect"},"Coming up"),upcoming.length?el("div",{class:"evgrid"},...upcoming.map(evCard)):el("div",{class:"empty"},"Event listings are being gathered."));
   pad.append(el("p",{class:"note",style:"margin-top:16px"},"\"Date to confirm\" means the usual timing; the organizer hasn't announced this year's date yet."));
@@ -1688,7 +1707,7 @@ function openEvent(e){evOpen=e;const ov=$("#evDetail");ov.replaceChildren();ov.h
       el("div",{class:"evtop"},evIcon(e.category,12),el("span",{},(ECAT[e.category]||[e.category])[0])),el("h2",{},e.title)),
     el("div",{class:"evbody"},
       el("div",{class:"evfacts"},el("div",{},el("small",{},"When"),el("b",{},evWhen(e))),e.venue?el("div",{},el("small",{},"Where"),el("b",{},e.venue)):null,e.price?el("div",{},el("small",{},"Price"),el("b",{},e.price)):null),
-      e.date_status&&e.date_status!=="confirmed"?el("div",{class:"closedbanner",style:"margin:0"},el("b",{},"Date to confirm. "),"This is when it usually happens; check the organizer before you go."):null,
+      e.date_status&&e.date_status!=="confirmed"?el("div",{class:"closedbanner",style:"margin:0"},el("b",{},"Date to confirm. "),"Usual timing. Confirm with the organizer."):null,
       e.description?el("p",{},e.description):null,e.recurring?el("div",{class:"note"},"Repeats: "+e.recurring):null,
       el("div",{class:"inl"},v?el("button",{class:"btn primary",type:"button",onclick:()=>{closeEvent();location.hash="map";setTimeout(()=>openPlace(v),80)}},"Show on map"):null,e.url?el("a",{class:"btn",href:e.url,target:"_blank",rel:"noopener"},"Organizer page ↗"):null),
       ph?el("div",{class:"note"},(ph.venue?"Photo of the venue: ":"Photo: ")+(ph.author||"")+" · ",el("a",{href:ph.source,target:"_blank",rel:"noopener"},ph.license||"license")):null));
@@ -1761,17 +1780,17 @@ function stepper(){return el("div",{class:"steps-ind"},...["When","Interests","D
 function tile(on,label,icon,fn){const b=el("button",{class:"tile"+(on?" on":""),type:"button","aria-pressed":String(on),onclick:fn});if(icon){const s=el("span",{class:"ti"});s.innerHTML=svgIcon(icon,22,"currentColor");b.append(s)}b.append(el("span",{},label));return b}
 function renderPlan(){
   const pad=$("#planPad");pad.replaceChildren();
-  pad.append(el("div",{class:"kicker"},"03 · PLAN A DAY"),el("h1",{class:"h1"},"Plan your day"),el("p",{class:"lede"},"Answer four quick questions, or hold the mic and just tell us."));
+  pad.append(el("div",{class:"kicker"},"03 · PLAN A DAY"),el("h1",{class:"h1"},"Plan your day"),el("p",{class:"lede"},"Four questions. Or just say it."));
   // hold-to-talk shortcut
   const hold=el("button",{class:"holdmic"+(holdMode&&micOn?" on":""),type:"button","aria-label":"Hold to talk"});
   hold.innerHTML='<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>';
-  const holdTxt=el("div",{class:"holdtxt"},el("b",{},holdMode&&micOn?"Listening… let go to plan":"Hold to talk"),el("span",{},holdMode&&micOn?(partial||"Say who you're with, what you love and how long you have."):dict?"Hold to talk, or tap once to start and again to stop.":"Voice works in Chrome, Safari and the Claude app."));
+  const holdTxt=el("div",{class:"holdtxt"},el("b",{},holdMode&&micOn?"Listening… let go to plan":"Hold to talk"),el("span",{},holdMode&&micOn?(partial||"Who's coming, what you like, how long you've got."):dict?"Tap to start, tap to stop.":"Voice works in Chrome and Safari."));
   let t0=0;
-  const startHold=e=>{e.preventDefault();if(!dict){toast("Voice input works in Chrome, Safari and the Claude app.");return}
+  const startHold=e=>{e.preventDefault();if(!dict){toast("Voice works in Chrome and Safari.");return}
     if(holdMode&&holdTap){holdTap=false;endHold();return}
     if(e.pointerId!=null){try{hold.setPointerCapture(e.pointerId)}catch{}}
     t0=Date.now();holdMode=true;holdTap=false;holdBuf="";partial="";updateHoldUI(true);
-    dict.start().catch(err=>{holdMode=false;holdTap=false;updateHoldUI(false);toast(err&&err.code==="not_granted"?"Microphone access was declined. Allow the mic, or use the survey below.":"Couldn't start the mic. Try again, or use the survey below.")})};
+    dict.start().catch(err=>{holdMode=false;holdTap=false;updateHoldUI(false);toast(err&&err.code==="not_granted"?"Mic is blocked. Allow it in settings.":"Mic didn't start. Try again.")})};
   const release=()=>{if(!holdMode||holdTap)return;if(Date.now()-t0<450){holdTap=true;updateHoldUI(true);return}endHold()};
   hold.addEventListener("pointerdown",startHold);hold.addEventListener("pointerup",release);hold.addEventListener("pointercancel",release);
   hold.addEventListener("contextmenu",e=>e.preventDefault());
@@ -1794,14 +1813,14 @@ function renderPlan(){
       el("div",{class:"tiles"},tile(SV.travel==="drive","Driving","park",()=>{SV.travel="drive";saveSV();renderPlan()}),tile(SV.travel==="metro","Metro","metro",()=>{SV.travel="metro";saveSV();renderPlan()}),tile(SV.travel==="walk","Walk or rideshare","people",()=>{SV.travel="walk";saveSV();renderPlan()}),tile(SV.travel==="skip","Skip: I'm sorted","dir",()=>{SV.travel="skip";saveSV();renderPlan()})));
     if(SV.travel==="drive")card.append(el("div",{class:"q"},"Do you need parking?"),el("div",{class:"tiles"},tile(SV.parkPref==="cheap","Cheapest",null,()=>{SV.parkPref="cheap";saveSV();renderPlan()}),tile(SV.parkPref==="close","Closest to my stops",null,()=>{SV.parkPref="close";saveSV();renderPlan()})),
       el("label",{class:"tgl"},el("input",{type:"checkbox",checked:SV.parkInPlan,onchange:e=>{SV.parkInPlan=e.target.checked;saveSV()}}),"Start and end my plan at the parking"));
-    card.append(nav(true,()=>{const plan=quickPlan(true);setPlan(plan);chat.push({role:"assistant",text:"Here's your day. Not quite right? Tap 👎 on a stop, or type or talk below to change it.",plan});saveChat();SV.step=0;saveSV();renderPlan();setTimeout(()=>$("#planResult")?.scrollIntoView({behavior:reduce?"auto":"smooth",block:"start"}),60)},"Build my day"))}
+    card.append(nav(true,()=>{const plan=quickPlan(true);setPlan(plan);chat.push({role:"assistant",text:"Here's your day. 👎 a stop to swap it.",plan});saveChat();SV.step=0;saveSV();renderPlan();setTimeout(()=>$("#planResult")?.scrollIntoView({behavior:reduce?"auto":"smooth",block:"start"}),60)},"Build my day"))}
   pad.append(card);
   // the plan + AI edits
   const res=el("div",{id:"planResult"});
   if(curPlan&&curPlan.stops&&curPlan.stops.length)res.append(planCard(curPlan,true));
   pad.append(res);
   const log=el("div",{class:"chatlog",id:"chatlog"});
-  if(!chat.length)log.append(bubble({role:"assistant",text:"Once you have a plan, tell me what to change: \"swap the sushi for ramen\", \"less walking\", \"we're tired by 3pm\". Type, or tap the mic."}));
+  if(!chat.length)log.append(bubble({role:"assistant",text:"Try \"ramen instead of sushi\" or \"done by 3.\""}));
   chat.forEach(m=>log.append(bubble(m)));
   if(busy)log.append(el("div",{class:"bub a"},el("span",{class:"spin"}),"Thinking…"));
   const input=el("textarea",{id:"chatIn",rows:1,placeholder:micOn&&!holdMode?"Listening…":"Ask for changes",enterkeyhint:"send",oninput:e=>{e.target.style.height="auto";e.target.style.height=Math.min(110,e.target.scrollHeight)+"px"},onkeydown:e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}}});
@@ -1809,7 +1828,7 @@ function renderPlan(){
   mic.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>';
   const sendB=el("button",{class:"sendbtn",type:"button","aria-label":"Send",onclick:()=>send()});sendB.innerHTML=svgIcon("dir",18,"#fff");
   pad.append(el("div",{class:"card chatcard"},
-    el("div",{class:"chathead"},el("b",{},"Edit with AI"),el("span",{class:"note"},sample?"Uses your Claude account":"Full AI works when opened in Claude"),chat.length?el("button",{class:"linkbtn",type:"button",onclick:()=>{chat=[];saveChat();renderPlan()}},"Clear chat"):null),
+    el("div",{class:"chathead"},el("b",{},"Tweak it"),null,chat.length?el("button",{class:"linkbtn",type:"button",onclick:()=>{chat=[];saveChat();renderPlan()}},"Clear chat"):null),
     log,el("div",{class:"sugg"},...["Less walking","Swap lunch","Add a museum","Cheaper","End by 4pm"].map(s=>el("button",{class:"chip",type:"button",onclick:()=>send(s)},s))),
     partial&&!holdMode?el("div",{class:"partial"},partial):null,el("div",{class:"chatin"},mic,input,sendB)));
   setTimeout(()=>{const l=$("#chatlog");if(l)l.scrollTop=l.scrollHeight},0);
@@ -1817,10 +1836,10 @@ function renderPlan(){
 let holdBuf="",holdTap=false;
 async function endHold(){if(!holdMode)return;holdTap=false;updateHoldUI(true,"Got it, planning…");try{await dict.stop()}catch{}
   setTimeout(()=>{const said=(holdBuf+" "+partial).trim();holdMode=false;partial="";
-    if(said)send("Plan my day from scratch: "+said,{fromVoice:true});else{renderPlan();toast("I didn't catch that. Hold the mic and speak a bit longer.")}},350)}
+    if(said)send("Plan my day from scratch: "+said,{fromVoice:true});else{renderPlan();toast("Didn't catch that. Try again.")}},350)}
 function updateHoldUI(on,title){const b=document.querySelector(".holdmic"),t=document.querySelector(".holdtxt");if(!b||!t)return;b.classList.toggle("on",!!on);
   t.querySelector("b").textContent=title||(on?(holdTap?"Listening… tap again when done":"Listening… let go to plan"):"Hold to talk");
-  t.querySelector("span").textContent=on?((holdBuf+" "+partial).trim()||"Say who you're with, what you love and how long you have."):(dict?"Hold to talk, or tap once to start and again to stop.":"Voice works in Chrome, Safari and the Claude app.")}
+  t.querySelector("span").textContent=on?((holdBuf+" "+partial).trim()||"Who's coming, what you like, how long you've got."):(dict?"Tap to start, tap to stop.":"Voice works in Chrome and Safari.")}
 function planCard(plan,main){const stops=plan.stops.filter(s=>BY[s.id]);let prev=me;let tot=0;const park=plan.park&&BY[plan.park];
   const card=el("div",{class:main?"card plancard main":"plancard"},el("div",{class:"pth"},el("b",{class:"pt"},plan.title||"Your day"),plan.date?el("span",{class:"note"},new Date(plan.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})):null));
   if(park){prev=park;card.append(el("div",{class:"stop parkstop"},el("span",{class:"num pk"},"P"),el("div",{},el("div",{class:"t"},"Park first"),el("b",{},park.name),el("p",{},park.ratesShort||park.rates||"Rates not confirmed"))))}
@@ -1837,7 +1856,7 @@ function planCard(plan,main){const stops=plan.stops.filter(s=>BY[s.id]);let prev
   return card}
 function bubble(m){if(m.role==="user")return el("div",{class:"bub u"},m.text);
   const b=el("div",{class:"bub a"},m.text?el("div",{},m.text):null);if(m.plan&&m.plan.stops&&m.plan.stops.length&&m.plan!==curPlan)b.append(el("div",{class:"note"},"Plan updated above."));return b}
-async function toggleMic(){if(!dict){toast("Voice input works in Chrome and the Claude app. You can type instead.");return}if(micOn){try{await dict.stop()}catch{}return}holdMode=false;dict.start().catch(e=>{if(e&&e.code==="not_granted")toast("Microphone access was declined. You can type instead.")})}
+async function toggleMic(){if(!dict){toast("Voice works in Chrome and Safari.");return}if(micOn){try{await dict.stop()}catch{}return}holdMode=false;dict.start().catch(e=>{if(e&&e.code==="not_granted")toast("Mic is blocked. Type instead.")})}
 function wireDictation(){if(!dict)return;
   dict.onPartial(({text})=>{partial=text;if(holdMode){updateHoldUI(true,document.querySelector(".holdtxt b")?.textContent);return}const t=document.querySelector(".partial");if(t)t.textContent=text;else if(text)renderPlanKeep()});
   dict.onFinal(({text})=>{if(holdMode){holdBuf=(holdBuf+" "+text).trim();partial="";updateHoldUI(true,document.querySelector(".holdtxt b")?.textContent);return}const i=$("#chatIn");if(i)i.value=(i.value?i.value.trimEnd()+" ":"")+text.trim();partial="";document.querySelector(".partial")?.remove()});
@@ -1865,7 +1884,7 @@ Reply with only JSON: {"reply":"1-2 friendly sentences","plan":{"title":"...","p
       if(plan)setPlan(plan);reply={role:"assistant",text:String(out&&out.reply||"Updated your plan."),plan};
     }else reply=offlineReply(text);
     chat.push(reply);
-  }catch(e){const c=e&&e.code;if(["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(c))sample=null;const r=offlineReply(text);r.text=(c==="rate_limited"?"The AI planner is busy. ":"The AI planner isn't available, so I used the quick planner. ")+r.text;chat.push(r)}
+  }catch(e){const c=e&&e.code;if(["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(c))sample=null;const r=offlineReply(text);r.text=(c==="rate_limited"?"":"")+r.text;chat.push(r)}
   finally{busy=false;saveChat();renderPlan();setTimeout(()=>$("#planResult")?.scrollIntoView({behavior:reduce?"auto":"smooth",block:"start"}),60)}}
 const KW=[["food","ramen",/ramen|noodle|udon/],["food","sushi",/sushi|sashimi|fish/],["food","cafes",/sweet|mochi|dessert|ice cream|coffee|tea|matcha|boba|cafe/],["food","bbq",/bbq|barbecue|grill|korean/],["food","bars",/bar|beer|sake|drink|cocktail/],
   ["shop","gifts",/gift|souvenir/],["shop","anime",/anime|manga|figure|cards?/],["shop","fashion",/fashion|cloth|sneaker|shoe/],["shop","books",/book/],["shop","home",/ceramic|bowl|home|kitchen/],["explore","temples",/temple|history|heritage|church/],["explore","museums",/museum/],["explore","shows",/theater|theatre|music|show|concert/],["explore","events",/event|festival/]];
@@ -1874,7 +1893,7 @@ function offlineReply(text){const t=text.toLowerCase();const changed=[];
     if(/(no|not|don'?t|hate|less|without|skip|avoid)\s+(\w+\s){0,2}$/.test(before+" ")){if(cur.includes(k)){SV.picks[g]=cur.filter(x=>x!==k);changed.push("no "+k)}}else{if(!cur.includes(k))SV.picks[g]=[...cur,k];if(!SV.groups.includes(g))SV.groups.push(g);changed.push(k)}}
   if(/full day|all day/.test(t))SV.dur="full";if(/quick|short|couple hours|2 hours/.test(t))SV.dur="short";if(/drive|driving|car|park/.test(t)&&!/no car|not driving/.test(t))SV.travel="drive";if(/metro|train/.test(t))SV.travel="metro";if(/less walking/.test(t))seed=1;
   saveSV();const plan=quickPlan(true);setPlan(plan);
-  return{role:"assistant",text:(changed.length?"Got it: "+changed.join(", ")+". ":"")+"Here's an updated plan."+(sample?"":" (Full AI editing works when this site is opened in Claude.)"),plan}}
+  return{role:"assistant",text:(changed.length?"Got it: "+changed.join(", ")+". ":"")+"Updated.",plan}}
 function eventVenue(e){return PLACES.find(p=>e.venue&&((p.id==="janm"&&/janm|national museum/i.test(e.venue))||(p.id==="jaccc"&&/jaccc|aratani|cultural/i.test(e.venue))||(p.id==="jvp"&&/village plaza/i.test(e.venue))||(p.id==="unioncenter"&&/union center|east west players|david henry hwang/i.test(e.venue))||(p.id==="goforbroke"&&/go for broke/i.test(e.venue))||e.venue.toLowerCase().includes(p.name.toLowerCase())))}
 let planView=null,planNums=[];
 /* the plan on the map: every walking leg, numbered stops, tap a stop to see the walk to the next one */
@@ -1911,7 +1930,7 @@ function renderPlanSheet(){if(!planView)return;const{legs,active,park}=planView;
   if(park)rows.push(el("div",{class:"planstart"},"Back to your car at "+park.name));
   const cur=active>=0?legs[active]:null;
   sbody.replaceChildren(el("div",{class:"routehead"},el("b",{},cur&&cur.r?fmtMin(cur.r.meters):fmtMin(total)),el("span",{},cur?"to "+(cur.b.cat==="park"?"your car":cur.b.name):"walking in total · "+stopsP.length+" stops")),
-    el("div",{class:"tabpanel"},el("div",{class:"note",style:"margin-bottom:6px"},cur?"Walking from "+(cur.a===me?"your start":cur.a.name)+". Tap another stop or walk to switch.":"Tap a numbered stop to see the walk to the next one."),...rows,
+    el("div",{class:"tabpanel"},el("div",{class:"note",style:"margin-bottom:6px"},cur?"Walking from "+(cur.a===me?"your start":cur.a.name)+". Tap another stop or walk to switch.":"Tap a stop for the walk to the next."),...rows,
       el("div",{class:"inl",style:"margin-top:12px"},el("button",{class:"btn",type:"button",onclick:()=>{planView.active=-1;drawPlanRoute();renderPlanSheet();fitPoints(legs.flatMap(l=>l.r?l.r.pts:[]))}},"Whole route"),el("button",{class:"btn",type:"button",onclick:exitPlanView},"Close plan"))))}
 
 /* ======================================================================
@@ -1935,18 +1954,18 @@ function renderAccount(){
   const who=meInfo&&meInfo.name?meInfo.name:null;
   pad.append(el("div",{class:"kicker"},"05 · ACCOUNT"),el("h1",{class:"h1"},acct.type?(who?"Hi, "+who.split(" ")[0]:"Your account"):"Join Little Tokyo"));
   if(!acct.type){
-    pad.append(el("p",{class:"lede"},"Save places and itineraries, keep your preferences, and get the newsletter."),
+    pad.append(el("p",{class:"lede"},"Save spots, keep plans, get the monthly letter."),
       el("div",{class:"tiles two big"},tile(false,"I'm visiting","people",()=>{acct.type="visitor";persist();renderAccount();toast("Visitor account created")}),tile(false,"I own a business","store",()=>{acct.type="business";persist();renderAccount()})),
-      el("p",{class:"note",style:"margin-top:12px"},acctMode==="cloud"?`You'll be signed in with your Claude account${who?" ("+who+")":""}, so it works on every device.`:"On this prototype your account is saved on this device. Signing in with email comes with the public launch."));
+      el("p",{class:"note",style:"margin-top:12px"},acctMode==="cloud"?`You'll be signed in with your account${who?" ("+who+")":""}, so it works on every device.`:"Saved on this phone for now."));
     return}
-  const typeRow=el("div",{class:"acctrow"},el("span",{class:"badge-t"},acct.type==="business"?"Business owner":"Visitor"),el("span",{class:"note"},acctMode==="cloud"?"Synced to your Claude account":"Saved on this device"),el("button",{class:"linkbtn",type:"button",onclick:()=>{acct.type=acct.type==="business"?"visitor":"business";persist();renderAccount()}},"Switch type"));
+  const typeRow=el("div",{class:"acctrow"},el("span",{class:"badge-t"},acct.type==="business"?"Business owner":"Visitor"),el("span",{class:"note"},acctMode==="cloud"?"Synced to your account":"Saved on this device"),el("button",{class:"linkbtn",type:"button",onclick:()=>{acct.type=acct.type==="business"?"visitor":"business";persist();renderAccount()}},"Switch type"));
   pad.append(typeRow);
   if(acct.type==="business"){
     const sel=el("select",{"aria-label":"Your business",onchange:e=>{acct.business=e.target.value||null;persist();renderAccount()}},el("option",{value:""},"Choose your business"),...PLACES.filter(POI).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>el("option",{value:p.id},p.name)));sel.value=acct.business||"";
     const b=BY[acct.business];
     pad.append(el("div",{class:"card"},el("div",{class:"q"},"Your business"),sel,
       b?el("div",{},listRow(b,"View",()=>{location.hash="map";setTimeout(()=>openPlace(b),80)}),b.cat==="eat"?ownerBox(b):null):null,
-      el("div",{class:"soon"},el("b",{},"Business tools coming soon"),el("span",{},"Add photos, update hours and menus, write a note to visitors, and see how many people saved you. Ownership will be verified before tools unlock."))))}
+      el("div",{class:"soon"},el("b",{},"Business tools coming soon"),el("span",{},"Photos, hours, menus, a note to visitors. We check ownership first."))))}
   // saved places
   const sp=[...saved].map(id=>BY[id]).filter(Boolean);
   pad.append(el("div",{class:"sect"},"Saved places"),sp.length?el("div",{class:"card"},...sp.map(p=>listRow(p,"Open",()=>{location.hash="map";setTimeout(()=>openPlace(p),80)}))):el("div",{class:"empty"},"Tap Save on any place to keep it here."));
@@ -1955,18 +1974,18 @@ function renderAccount(){
   if(acct.plans.length)acct.plans.slice().reverse().forEach((pl,i)=>pad.append(el("div",{class:"card savedplan"},el("div",{class:"pth"},el("b",{class:"pt"},pl.title||"My day"),el("span",{class:"note"},(pl.date?new Date(pl.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})+" · ":"")+pl.stops.length+" stops")),
     el("div",{class:"note"},pl.stops.map(s=>(BY[s.id]||{}).name).filter(Boolean).join(" → ")),
     el("div",{class:"inl"},el("button",{class:"btn primary",type:"button",onclick:()=>{setPlan(pl);location.hash="plan"}},"Open"),el("button",{class:"btn",type:"button",onclick:()=>{acct.plans=acct.plans.filter(x=>x!==pl);persist();renderAccount()}},"Delete")))));
-  else pad.append(el("div",{class:"empty"},"Build a day in Plan a day, then tap Save plan."));
+  else pad.append(el("div",{class:"empty"},"No saved plans yet."));
   // preferences
-  pad.append(el("div",{class:"sect"},"Preferences"),el("div",{class:"card"},el("div",{class:"note"},"Your survey answers are remembered for next time."),
+  pad.append(el("div",{class:"sect"},"Preferences"),el("div",{class:"card"},el("div",{class:"note"},""),
     el("div",{class:"wchips"},...Object.entries(SURVEY_DEF).flatMap(([g,d])=>SV.groups.includes(g)?(SV.picks[g]||[]).map(k=>el("span",{class:"chip","aria-pressed":"true"},(d.opts.find(o=>o[0]===k)||[,k])[1])):[])),
     el("div",{class:"inl"},el("button",{class:"btn",type:"button",onclick:()=>{SV.step=1;saveSV();location.hash="plan"}},"Edit interests"),el("button",{class:"btn",type:"button",onclick:()=>{SV=Object.assign({},S0);saveSV();avoid.clear();store.set("lt-avoid",[]);toast("Preferences reset");renderAccount()}},"Reset")),
     el("div",{class:"q"},"Appearance"),el("div",{class:"tiles three"},...[["auto","Match device"],["light","Light"],["dark","Dark"]].map(([k,l])=>tile(themeMode===k,l,null,()=>{setTheme(k);renderAccount()})))));
   // newsletter
   const nl=acct.newsletter;const em=el("input",{type:"email",placeholder:"you@example.com","aria-label":"Email for the newsletter",value:nl&&nl.email||(meInfo&&meInfo.email)||""});
-  pad.append(el("div",{class:"sect"},"Newsletter"),el("div",{class:"card"},el("div",{class:"note"},"A short monthly email: new openings, festivals and legacy business stories."),
+  pad.append(el("div",{class:"sect"},"Newsletter"),el("div",{class:"card"},el("div",{class:"note"},"Once a month: openings, festivals, old shops."),
     nl?el("div",{},el("b",{},"You're subscribed"),el("div",{class:"note"},nl.email),el("button",{class:"btn",type:"button",onclick:async()=>{try{if(acctMode==="cloud")await db.doc("newsletter/"+meInfo.id).delete();acct.newsletter=null;persist();toast("Unsubscribed");renderAccount()}catch{toast("Couldn't unsubscribe. Try again.")}}},"Unsubscribe"))
       :el("form",{class:"inl",onsubmit:async e=>{e.preventDefault();const v=em.value.trim();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){toast("Enter a valid email address");return}
-        const rec={email:v,at:Date.now(),interests:SV.groups};try{if(acctMode==="cloud")await db.doc("newsletter/"+meInfo.id).set(rec);acct.newsletter=rec;persist();toast(acctMode==="cloud"?"Subscribed":"Saved. Sign-ups are collected once the site launches.");renderAccount()}catch{toast("Couldn't subscribe. Try again.")}}},em,el("button",{class:"btn primary",type:"submit"},"Subscribe"))));
+        const rec={email:v,at:Date.now(),interests:SV.groups};try{if(acctMode==="cloud")await db.doc("newsletter/"+meInfo.id).set(rec);acct.newsletter=rec;persist();toast(acctMode==="cloud"?"Subscribed":"You're on the list.");renderAccount()}catch{toast("Couldn't subscribe. Try again.")}}},em,el("button",{class:"btn primary",type:"submit"},"Subscribe"))));
   pad.append(el("button",{class:"btn",type:"button",style:"margin-top:18px;width:100%",onclick:()=>{acct={type:null,business:null,plans:[],saved:[],prefs:null,newsletter:acct.newsletter};saved.clear();store.set("lt-acct",null);if(acctMode==="cloud")acctDoc("profile").delete().catch(()=>{});renderAccount();toast("Signed out and cleared")}},"Sign out"));
 }
 
