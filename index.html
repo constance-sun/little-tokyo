@@ -1455,20 +1455,20 @@ function paintBuildings(){const active=filter!=="all";
   $("#subchips").hidden=!SUBS[filter];if(SUBS[filter])buildFilter()}
 /* type filter: one "Filter" button opens a list of types for the chosen category */
 let waitF="any";
-const WAITOPTS=[["any","Any wait"],["mid","Usually under 30 min"],["busy","Known for lines"],["info","Has wait-time info"]];
+const WAITOPTS=[["any","Any wait"],["10","Under 10 min"],["30","Under 30 min"],["60","Under 1 hour"]];
 function waitVal(p){const lw=liveWait(p);if(lw)return lw.minutes;const w=p.wait;return w&&typeof w.typical_wait_max==="number"?w.typical_wait_max:null}
-function waitOK(p,f=waitF){if(f==="any")return true;if(f==="info")return!!waitSummary(p);const v=waitVal(p);if(f==="busy")return v!=null?v>30:!!(p.wait&&p.wait.popular);return v!=null&&v<=30}
+function waitOK(p,f=waitF){if(f==="any")return true;const v=waitVal(p);return v!=null&&v<=Number(f)}
 function buildFilter(){const box=$("#subchips");box.replaceChildren();const types=SUBS[filter];
   const counts=Object.fromEntries(types.map(([k])=>[k,PLACES.filter(p=>p.cat===filter&&p.sub===k&&p.status!=="closed_permanently"&&p.status!=="moved").length]));
-  const label=[subs.size?[...subs].map(k=>(types.find(t=>t[0]===k)||[,k])[1]).join(", "):(waitF==="any"?"All types":null),waitF!=="any"?(WAITOPTS.find(o=>o[0]===waitF)||[,""])[1].replace("Usually ","").replace("Has wait-time info","Wait info"):null].filter(Boolean).join(" · ");
-  const inCat=PLACES.filter(p=>p.cat===filter&&p.status!=="closed_permanently"&&p.status!=="moved"&&(!subs.size||subs.has(p.sub)));const waitN=Object.fromEntries(WAITOPTS.map(([k])=>[k,inCat.filter(p=>waitOK(p,k)).length]));const hasWait=waitN.info>0||waitF!=="any";
+  const label=[subs.size?[...subs].map(k=>(types.find(t=>t[0]===k)||[,k])[1]).join(", "):(waitF==="any"?"All types":null),waitF!=="any"?(WAITOPTS.find(o=>o[0]===waitF)||[,""])[1]:null].filter(Boolean).join(" · ");
+  const inCat=PLACES.filter(p=>p.cat===filter&&p.status!=="closed_permanently"&&p.status!=="moved"&&(!subs.size||subs.has(p.sub)));const waitN=Object.fromEntries(WAITOPTS.map(([k])=>[k,inCat.filter(p=>waitOK(p,k)).length]));const hasWait=filter==="eat";
   const btn=el("button",{class:"fbtn"+(subs.size||waitF!=="any"?" on":""),type:"button","aria-expanded":String(fpOpen),onclick:()=>{fpOpen=!fpOpen;buildFilter()}});
   btn.innerHTML=svgIcon("filter",14,"currentColor");btn.append(el("span",{},"Filter: "+label),el("i",{},fpOpen?"▴":"▾"));box.append(btn);
   if(subs.size||waitF!=="any")box.append(el("button",{class:"fclear",type:"button",onclick:()=>{subs.clear();waitF="any";store.set("lt-subs",[]);refreshPins()}},"Clear"));
   if(fpOpen){const pnl=el("div",{class:"fpanel"});
     if(hasWait){pnl.append(el("div",{class:"fl"},"Wait time"));
       WAITOPTS.forEach(([k,l])=>{const id="fw-"+k;pnl.append(el("label",{class:"frow"+(k!=="any"&&!waitN[k]?" dis":""),for:id},el("input",{type:"radio",name:"fwait",id,checked:waitF===k,disabled:k!=="any"&&!waitN[k]&&waitF!==k,onchange:()=>{waitF=k;refreshPins()}}),el("span",{class:"fic fwait",html:`<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">${II.hourglass}</svg>`}),el("span",{},l),el("small",{},k==="any"?"":String(waitN[k]))))});
-      pnl.append(el("div",{class:"note",style:"margin:4px 0 0"},"Busy-time waits from reviews, or live waits posted by the restaurant."))}
+      pnl.append(el("div",{class:"note",style:"margin:4px 0 0"},"Based on usual busy-time waits from reviews, or a live wait posted by the restaurant. Places with no wait info are hidden when you pick a time."))}
     pnl.append(el("div",{class:"fl"+(hasWait?" fsep":"")},CATS[filter].label+" types"));
 
     types.filter(([k])=>counts[k]).forEach(([k,l,ic])=>{const id="ft-"+k;const row=el("label",{class:"frow",for:id},el("input",{type:"checkbox",id,checked:subs.has(k),onchange:e=>{e.target.checked?subs.add(k):subs.delete(k);store.set("lt-subs",[...subs]);refreshPins()}}),el("span",{class:"fic",style:`background:${CATS[filter].color}`,html:svgIcon(ic,12,"#fff")}),el("span",{},l),el("small",{},String(counts[k])));pnl.append(row)});
