@@ -1019,6 +1019,10 @@ body.dark{--halo:rgba(255,255,255,.85)}
 .lgfavim{display:grid;place-items:center;width:140px;height:150px;overflow:hidden;margin-bottom:6px}
 .lgfav b{display:block;font-family:"Archivo",sans-serif;font-weight:800;font-size:14px;letter-spacing:-.02em;line-height:1.15}
 .lgfav small{display:block;font-size:11.5px;color:var(--dim);margin-top:2px}
+/* wait time inside the type filter */
+.fpanel .fl.fsep{margin-top:12px;padding-top:10px;border-top:1px solid var(--rule)}
+.fpanel .fic.fwait{background:var(--cream-2)}
+.fpanel .frow.dis{opacity:.45}
 
 </style>
 
@@ -1427,7 +1431,7 @@ function pinVisible(p){
   if(p.cat==="park")return filter==="park"||selected===p||routeTarget===p||(filter==="all"&&cam.z>=1.6);
   if(p.cat==="metro")return true;
   if((p.status==="closed_permanently"||p.status==="moved")&&filter!=="closed")return selected===p;
-  switch(filter){case"all":return true;case"eat":case"shop":case"explore":return p.cat===filter&&(!subs.size||subs.has(p.sub));case"legacy":return p.legacy;case"open":return isOpen(p);case"wait":return !!(p.wait&&(p.wait.popular||p.wait.typical_wait_max))||!!LIVE[p.id];case"park":case"wc":return false;case"closed":return["closed_permanently","moved","temp_closed"].includes(p.status);default:return true}
+  switch(filter){case"all":return true;case"eat":case"shop":case"explore":return p.cat===filter&&(!subs.size||subs.has(p.sub))&&waitOK(p);case"legacy":return p.legacy;case"open":return isOpen(p);case"wait":return !!(p.wait&&(p.wait.popular||p.wait.typical_wait_max))||!!LIVE[p.id];case"park":case"wc":return false;case"closed":return["closed_permanently","moved","temp_closed"].includes(p.status);default:return true}
 }
 function buildPins(){pinsEl.replaceChildren();
   for(const p of PLACES){const b=el("button",{class:`pin k-${p.cat} ${p.legacy?"legacy":""} ${["closed_permanently","moved","temp_closed"].includes(p.status)?"closed":""}`,type:"button","aria-label":p.name},
@@ -1448,19 +1452,27 @@ function paintBuildings(){const active=filter!=="all";
   if(selected&&selected._bld){selected._bld.classList.add("hl");selected._bld.style.setProperty("--c",CATS[selected.cat].color)}
   $("#subchips").hidden=!SUBS[filter];if(SUBS[filter])buildFilter()}
 /* type filter: one "Filter" button opens a list of types for the chosen category */
+let waitF="any";
+const WAITOPTS=[["any","Any wait"],["mid","Usually under 30 min"],["busy","Known for lines"],["info","Has wait-time info"]];
+function waitVal(p){const lw=liveWait(p);if(lw)return lw.minutes;const w=p.wait;return w&&typeof w.typical_wait_max==="number"?w.typical_wait_max:null}
+function waitOK(p,f=waitF){if(f==="any")return true;if(f==="info")return!!waitSummary(p);const v=waitVal(p);if(f==="busy")return v!=null?v>30:!!(p.wait&&p.wait.popular);return v!=null&&v<=30}
 function buildFilter(){const box=$("#subchips");box.replaceChildren();const types=SUBS[filter];
   const counts=Object.fromEntries(types.map(([k])=>[k,PLACES.filter(p=>p.cat===filter&&p.sub===k&&p.status!=="closed_permanently"&&p.status!=="moved").length]));
-  const label=subs.size?[...subs].map(k=>(types.find(t=>t[0]===k)||[,k])[1]).join(", "):"All types";
-  const btn=el("button",{class:"fbtn"+(subs.size?" on":""),type:"button","aria-expanded":String(fpOpen),onclick:()=>{fpOpen=!fpOpen;buildFilter()}});
+  const label=[subs.size?[...subs].map(k=>(types.find(t=>t[0]===k)||[,k])[1]).join(", "):(waitF==="any"?"All types":null),waitF!=="any"?(WAITOPTS.find(o=>o[0]===waitF)||[,""])[1].replace("Usually ","").replace("Has wait-time info","Wait info"):null].filter(Boolean).join(" · ");
+  const inCat=PLACES.filter(p=>p.cat===filter&&p.status!=="closed_permanently"&&p.status!=="moved"&&(!subs.size||subs.has(p.sub)));const waitN=Object.fromEntries(WAITOPTS.map(([k])=>[k,inCat.filter(p=>waitOK(p,k)).length]));const hasWait=waitN.info>0||waitF!=="any";
+  const btn=el("button",{class:"fbtn"+(subs.size||waitF!=="any"?" on":""),type:"button","aria-expanded":String(fpOpen),onclick:()=>{fpOpen=!fpOpen;buildFilter()}});
   btn.innerHTML=svgIcon("filter",14,"currentColor");btn.append(el("span",{},"Filter: "+label),el("i",{},fpOpen?"▴":"▾"));box.append(btn);
-  if(subs.size)box.append(el("button",{class:"fclear",type:"button",onclick:()=>{subs.clear();store.set("lt-subs",[]);refreshPins()}},"Clear"));
+  if(subs.size||waitF!=="any")box.append(el("button",{class:"fclear",type:"button",onclick:()=>{subs.clear();waitF="any";store.set("lt-subs",[]);refreshPins()}},"Clear"));
   if(fpOpen){const pnl=el("div",{class:"fpanel"},el("div",{class:"fl"},CATS[filter].label+" types"));
     types.filter(([k])=>counts[k]).forEach(([k,l,ic])=>{const id="ft-"+k;const row=el("label",{class:"frow",for:id},el("input",{type:"checkbox",id,checked:subs.has(k),onchange:e=>{e.target.checked?subs.add(k):subs.delete(k);store.set("lt-subs",[...subs]);refreshPins()}}),el("span",{class:"fic",style:`background:${CATS[filter].color}`,html:svgIcon(ic,12,"#fff")}),el("span",{},l),el("small",{},String(counts[k])));pnl.append(row)});
+    if(hasWait){pnl.append(el("div",{class:"fl fsep"},"Wait time"));
+      WAITOPTS.forEach(([k,l])=>{const id="fw-"+k;pnl.append(el("label",{class:"frow"+(k!=="any"&&!waitN[k]?" dis":""),for:id},el("input",{type:"radio",name:"fwait",id,checked:waitF===k,disabled:k!=="any"&&!waitN[k]&&waitF!==k,onchange:()=>{waitF=k;refreshPins()}}),el("span",{class:"fic fwait",html:`<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">${II.hourglass}</svg>`}),el("span",{},l),el("small",{},k==="any"?"":String(waitN[k]))))});
+      pnl.append(el("div",{class:"note",style:"margin:4px 0 8px"},"Busy-time waits from reviews, or live waits posted by the restaurant."))}
     pnl.append(el("button",{class:"btn primary",type:"button",onclick:()=>{fpOpen=false;buildFilter()}},"Done"));box.append(pnl)}}
 
 /* filter chips */
-const CHIPS=[["all","All",null],["eat","Eat","dining"],["shop","Shop","shop"],["explore","Explore","temple"],["legacy","Legacy","star"],["open","Open now",null],["wait","Wait times",null],["park","Parking","park"],["wc","Restrooms","wc"],["closed","Closed / moved",null]];
-function buildChips(){$("#chips").replaceChildren(...CHIPS.map(([k,l,ic])=>{const b=el("button",{class:"chip"+(k==="legacy"?" gold":""),type:"button","aria-pressed":String(filter===k),onclick:()=>{filter=filter===k&&k!=="all"?"all":k;subs.clear();fpOpen=false;store.set("lt-filter",filter);store.set("lt-subs",[]);buildChips();refreshPins();if(filter==="park")toast("Parking garages and lots are lit up. Tap one for rates.");if(filter==="wc")toast("Restrooms are lit up. Tap one for access details.");
+const CHIPS=[["all","All",null],["eat","Eat","dining"],["shop","Shop","shop"],["explore","Explore","temple"],["legacy","Legacy","star"],["open","Open now",null],["park","Parking","park"],["wc","Restrooms","wc"],["closed","Closed / moved",null]];
+function buildChips(){$("#chips").replaceChildren(...CHIPS.map(([k,l,ic])=>{const b=el("button",{class:"chip"+(k==="legacy"?" gold":""),type:"button","aria-pressed":String(filter===k),onclick:()=>{filter=filter===k&&k!=="all"?"all":k;subs.clear();waitF="any";fpOpen=false;store.set("lt-filter",filter);store.set("lt-subs",[]);buildChips();refreshPins();if(filter==="park")toast("Parking garages and lots are lit up. Tap one for rates.");if(filter==="wc")toast("Restrooms are lit up. Tap one for access details.");
     if(k==="open")toast(`${PLACES.filter(p=>POI(p)&&isOpen(p)).length} places open right now`)}});
   if(ic){const s=document.createElement("span");s.innerHTML=svgIcon(ic,14,filter===k?"currentColor":(CATS[k]||{}).color||"currentColor");b.append(s)}b.append(l);return b}))}
 
