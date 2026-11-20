@@ -1333,9 +1333,6 @@ function drawMap(){
   const defs=sv("defs");const cp=sv("clipPath",{id:"bounds"});cp.append(sv("rect",{x:BX0,y:BY0,width:BX1-BX0,height:BY1-BY0}));defs.append(cp);svg.prepend(defs);
   world.setAttribute("clip-path","url(#bounds)");
   world.append(sv("rect",{x:BX0,y:BY0,width:BX1-BX0,height:BY1-BY0,fill:"var(--ground)"}));
-  {const pat=sv("pattern",{id:"grain",width:90,height:90,patternUnits:"userSpaceOnUse"});let seed=7;const rnd=()=>(seed=(seed*9301+49297)%233280)/233280;
-    for(let i=0;i<46;i++)pat.append(sv("ellipse",{cx:(rnd()*90).toFixed(1),cy:(rnd()*90).toFixed(1),rx:(0.35+rnd()*0.7).toFixed(2),ry:(0.25+rnd()*0.4).toFixed(2),transform:"",fill:"var(--grain)"}));
-    defs.append(pat);world.append(sv("rect",{x:BX0,y:BY0,width:BX1-BX0,height:BY1-BY0,fill:"url(#grain)","pointer-events":"none"}))}
   const ptsAttr=p=>p.map(q=>q.join(",")).join(" ");
   for(const a of GEO.areas){if(a.p.length<3)continue;{const pg=sv("polygon",{points:ptsAttr(a.p),fill:a.k==="green"?"var(--green)":a.k==="parking"?"var(--lot)":"var(--plaza)",stroke:a.k==="parking"?"var(--lot-edge)":"none","stroke-width":1,class:a.k==="parking"?"lotp":""});world.append(pg);if(a.k==="parking")lotEls.push(pg)}}
   // streets: casing then fill, minor first
@@ -1355,9 +1352,9 @@ function drawMap(){
     const inside=PLACES.filter(p=>(POI(p)||p.cat==="park"||p.cat==="wc")&&pip(p.x,p.y,b.p));
     if(!inside.length&&!b.pk)return; // empty buildings stay off the map: plain ground reads cleaner
     const fill="var(--bldg)";
-    sh.append(sv("polygon",{points:ptsAttr(b.p),fill:"rgba(0,0,0,.55)"}));
+    const shp=sv("polygon",{points:ptsAttr(b.p),fill:"rgba(0,0,0,.55)"});sh.append(shp);
     const pg=sv("polygon",{points:ptsAttr(b.p),fill,stroke:"var(--bldg-edge)","stroke-width":.8,"stroke-linejoin":"round","vector-effect":"non-scaling-stroke"});
-    pg._in=inside;pg._pk=!!b.pk||inside.some(p=>p.cat==="park");if(pg._pk)pg.classList.add("pkb");
+    pg._in=inside;pg._sh=shp;pg._gray=!inside.some(p=>POI(p)||p.cat==="wc");pg._pk=!!b.pk||inside.some(p=>p.cat==="park");if(pg._pk)pg.classList.add("pkb");
     bl.append(pg);bldEls.push(pg);inside.forEach(p=>{if(POI(p)||!p._bld)p._bld=pg});
   });
   world.append(sh,bl);
@@ -1453,11 +1450,11 @@ function refreshPins(){for(const p of PLACES){if(!p._pin)continue;p._pin.hidden=
 /* light up only the buildings that match the chosen category; everything else stays quiet */
 function paintBuildings(){const active=filter!=="all";
   const match=p=>p._pin&&!p._pin.hidden&&(filter==="park"?p.cat==="park":filter==="wc"?p.cat==="wc":POI(p));
-  for(const b of bldEls){const hits=b._in.filter(match);const on=hits.length>0&&(filter!=="park"||b._pk)&&(active||hits.some(POI));
+  for(const b of bldEls){if(b._gray){const show=filter==="park";b.style.display=show?"":"none";b._sh.style.display=show?"":"none"}const hits=b._in.filter(match);const on=hits.length>0&&(filter!=="park"||b._pk)&&(active||hits.some(POI));
     b.classList.toggle("on",on);b.classList.toggle("off",!on);b.classList.toggle("soft",!active&&on);b.classList.remove("hl");
     if(on){const top=hits.filter(POI);const cnt={};top.forEach(p=>cnt[p.cat]=(cnt[p.cat]||0)+1);const main=Object.entries(cnt).sort((x,y)=>y[1]-x[1])[0];
       const c=filter==="legacy"?"var(--gold)":filter==="park"?CATS.park.color:filter==="wc"?CATS.wc.color:CATS[main?main[0]:hits[0].cat].color;b.style.setProperty("--c",c)}}
-  for(const l of lotEls){l.classList.toggle("on",filter==="park");l.classList.toggle("off",active&&filter!=="park")}
+  for(const l of lotEls){l.style.display=filter==="park"?"":"none";l.classList.toggle("on",filter==="park");l.classList.toggle("off",active&&filter!=="park")}
   if(selected&&selected._bld){selected._bld.classList.add("hl");selected._bld.style.setProperty("--c",CATS[selected.cat].color)}
   $("#subchips").hidden=!SUBS[filter];if(SUBS[filter])buildFilter()}
 /* type filter: one "Filter" button opens a list of types for the chosen category */
