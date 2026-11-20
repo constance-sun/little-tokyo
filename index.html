@@ -1025,6 +1025,9 @@ body.dark{--halo:rgba(255,255,255,.85)}
 .fpanel .frow.dis{opacity:.45}
 .holdmic{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 .holdcard{-webkit-user-select:none;user-select:none}
+/* paper grain on the ground, where the empty buildings used to be */
+body.light{--grain:rgba(90,80,66,.22)}
+body.dark{--grain:rgba(255,255,255,.07)}
 
 </style>
 
@@ -1330,6 +1333,9 @@ function drawMap(){
   const defs=sv("defs");const cp=sv("clipPath",{id:"bounds"});cp.append(sv("rect",{x:BX0,y:BY0,width:BX1-BX0,height:BY1-BY0}));defs.append(cp);svg.prepend(defs);
   world.setAttribute("clip-path","url(#bounds)");
   world.append(sv("rect",{x:BX0,y:BY0,width:BX1-BX0,height:BY1-BY0,fill:"var(--ground)"}));
+  {const pat=sv("pattern",{id:"grain",width:90,height:90,patternUnits:"userSpaceOnUse"});let seed=7;const rnd=()=>(seed=(seed*9301+49297)%233280)/233280;
+    for(let i=0;i<46;i++)pat.append(sv("ellipse",{cx:(rnd()*90).toFixed(1),cy:(rnd()*90).toFixed(1),rx:(0.35+rnd()*0.7).toFixed(2),ry:(0.25+rnd()*0.4).toFixed(2),transform:"",fill:"var(--grain)"}));
+    defs.append(pat);world.append(sv("rect",{x:BX0,y:BY0,width:BX1-BX0,height:BY1-BY0,fill:"url(#grain)","pointer-events":"none"}))}
   const ptsAttr=p=>p.map(q=>q.join(",")).join(" ");
   for(const a of GEO.areas){if(a.p.length<3)continue;{const pg=sv("polygon",{points:ptsAttr(a.p),fill:a.k==="green"?"var(--green)":a.k==="parking"?"var(--lot)":"var(--plaza)",stroke:a.k==="parking"?"var(--lot-edge)":"none","stroke-width":1,class:a.k==="parking"?"lotp":""});world.append(pg);if(a.k==="parking")lotEls.push(pg)}}
   // streets: casing then fill, minor first
@@ -1341,12 +1347,13 @@ function drawMap(){
     if(cls==="footway"||cls==="steps"){fil.append(sv("path",{d:d(r.p),fill:"none",stroke:"#5a4a38","stroke-width":w,"stroke-linecap":"round","stroke-dasharray":"0.1 4.5"}));continue}
     if(cls==="pedestrian"){fil.append(sv("path",{d:d(r.p),fill:"none",stroke:"var(--plaza-walk)","stroke-width":w,"stroke-linecap":"round","stroke-linejoin":"round"}));continue}
     cas.append(sv("path",{d:d(r.p),fill:"none",stroke:"var(--casing)","stroke-width":w+3,"stroke-linecap":"round","stroke-linejoin":"round"}));
-    fil.append(sv("path",{d:d(r.p),fill:"none",stroke:cls==="service"?"#2c2721":"var(--street)","stroke-width":w,"stroke-linecap":"round","stroke-linejoin":"round"}))}
+    fil.append(sv("path",{d:d(r.p),fill:"none",stroke:"var(--street)","stroke-width":w,"stroke-linecap":"round","stroke-linejoin":"round"}))}
   world.append(cas,fil);
   // buildings: soft shadow + footprint, tinted by what's inside
   const sh=sv("g",{transform:"translate(1.6 2.4)"}),bl=sv("g");
   GEO.buildings.forEach((b,i)=>{
     const inside=PLACES.filter(p=>(POI(p)||p.cat==="park"||p.cat==="wc")&&pip(p.x,p.y,b.p));
+    if(!inside.length&&!b.pk)return; // empty buildings stay off the map: plain ground reads cleaner
     const fill="var(--bldg)";
     sh.append(sv("polygon",{points:ptsAttr(b.p),fill:"rgba(0,0,0,.55)"}));
     const pg=sv("polygon",{points:ptsAttr(b.p),fill,stroke:"var(--bldg-edge)","stroke-width":.8,"stroke-linejoin":"round","vector-effect":"non-scaling-stroke"});
