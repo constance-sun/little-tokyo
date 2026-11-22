@@ -1,0 +1,114 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ======================================================================
+   Theme: HeroUI v3 default theme, branded for Little Tokyo.
+   - accent = the Little Tokyo red; rounder radius; Archivo everywhere.
+   - HeroUI tokens (bg-background, bg-surface, bg-surface-secondary, text-muted,
+     bg-accent, bg-accent-soft, text-accent, bg-default, border-separator…) drive the UI.
+   - --c-* / --t-* / map tokens drive pins, buildings and streets (not HeroUI).
+   ====================================================================== */
+@theme inline {
+  --font-sans: "Archivo", system-ui, -apple-system, sans-serif;
+  --font-display: "Archivo", system-ui, sans-serif;
+  --font-logo: "Archivo Black", "Archivo", sans-serif;
+  --font-jp: "Zen Kaku Gothic New", "Hiragino Sans", sans-serif;
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-eat: var(--c-eat);
+  --color-shop: var(--c-shop);
+  --color-explore: var(--c-explore);
+  --color-park: var(--c-park);
+  --color-wc: var(--c-wc);
+  --color-metro: var(--c-metro);
+  --color-glass: var(--glass);
+}
+
+:root {
+  --radius: 0.75rem;
+  --field-radius: calc(var(--radius) * 1.25);
+  --accent: oklch(0.56 0.2 30); /* #d42a1e-ish Little Tokyo red */
+  --accent-foreground: oklch(1 0 0);
+  --focus: var(--accent);
+  --link: var(--accent);
+  --gold: #9a7420;
+  --gold-soft: rgba(154, 116, 32, 0.12);
+  --glass: color-mix(in oklab, var(--surface) 94%, transparent);
+
+  /* categories */
+  --c-eat: #d2452b; --c-shop: #b8336a; --c-explore: #1f7f73; --c-park: #2f5fd0; --c-wc: #566f88; --c-metro: #c01f26;
+  /* map label colours (darker versions of the category colours) */
+  --t-eat: #b23a1e; --t-shop: #9a2758; --t-explore: #16675d; --t-park: #2a55b8; --t-wc: #4a6178; --t-metro: #b01c22;
+  --halo: #ffffff;
+  /* map surfaces */
+  --ground: #f1f1ef; --street: #ffffff; --casing: #dadada; --plaza: #f4ebe1; --plaza-walk: #f6efe7; --green: #e0e8d8;
+  --lot: #e9e9e7; --lot-edge: #d0d0ce; --label: #6a6a6a; --bldg: #e4e4e2; --bldg-edge: #c9c9c7; --bldg-off: #ececea;
+  --plaza-label: #c99a5a;
+}
+
+.dark,
+[data-theme="dark"] {
+  --accent: oklch(0.63 0.21 29);
+  --gold: #d8ae55;
+  --gold-soft: rgba(216, 174, 85, 0.14);
+
+  --c-eat: #ef6a46; --c-shop: #e0558c; --c-explore: #3fb3a3; --c-park: #5b8cff; --c-wc: #9db4cc; --c-metro: #e0332b;
+  --t-eat: #ff8a62; --t-shop: #f27aa8; --t-explore: #5fd0bf; --t-park: #8bb0ff; --t-wc: #b8cbe0; --t-metro: #ff6a5e;
+  --halo: rgba(0, 0, 0, 0.75);
+  --ground: #141414; --street: #2c2c2c; --casing: #0a0a0a; --plaza: #2a221b; --plaza-walk: #362a20; --green: #1e271d;
+  --lot: #1e1d1b; --lot-edge: #2c2a27; --label: #a8a8a8; --bldg: #262626; --bldg-edge: #393939; --bldg-off: #1b1b1b;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    background: var(--background);
+    color: var(--foreground);
+  }
+  [hidden] {
+    display: none !important;
+  }
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* cover page: the logo stamp drops onto the card */
+@keyframes stampIn {
+  0% { opacity: 0; transform: rotate(-16deg) scale(2.6); filter: blur(2px); }
+  55% { opacity: 1; transform: rotate(-5deg) scale(0.93); filter: none; }
+  75% { transform: rotate(-7.5deg) scale(1.03); }
+  100% { opacity: 1; transform: rotate(-7deg) scale(1); }
+}
+.stamp-in {
+  transform: rotate(-7deg);
+  animation: stampIn 0.5s cubic-bezier(0.25, 1.5, 0.45, 1) 0.9s both;
+}
+@keyframes pulse-soft {
+  0% { opacity: 1; }
+  100% { opacity: 0.35; }
+}
+.pulse-soft {
+  animation: pulse-soft 1s ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .stamp-in,
+  .pulse-soft {
+    animation: none;
+  }
+}
