@@ -99,3 +99,29 @@
 @media (prefers-reduced-motion: reduce) {
   .mapsheet { transition: none; }
 }
+
+/* ---------------- satellite mode ----------------
+   Photo imagery sits under everything (engine/imagery.ts). The drawn ground, streets, green
+   areas and plain buildings step aside; buildings only appear as translucent tints when a
+   filter or selection lights them up. Labels flip to white-on-dark like a hybrid map. */
+.mapbox.sat {
+  background: #2b3127;
+  --halo: rgba(0, 0, 0, 0.78);
+  --t-eat: #ffb199; --t-shop: #ff9cc4; --t-explore: #7fe3d3; --t-park: #a9c4ff; --t-wc: #d3e0ee; --t-metro: #ff8f86;
+}
+.mapbox:not(.sat) .g-imagery { display: none; }
+.mapbox.sat .g-ground,
+.mapbox.sat .g-streets,
+.mapbox.sat .g-bshadow,
+.mapbox.sat polygon.area { display: none; }
+.mapbox.sat .g-blds polygon { fill: transparent; stroke: transparent; }
+.mapbox.sat .g-blds polygon.on.soft { fill: transparent; stroke: rgba(255, 255, 255, 0.35); stroke-width: 1px; }
+.mapbox.sat .g-blds polygon.on { fill: color-mix(in srgb, var(--c) 30%, transparent); stroke: var(--c); stroke-width: 2px; }
+.mapbox.sat .g-blds polygon.off { fill: rgba(0, 0, 0, 0.18); opacity: 1; }
+.mapbox.sat .g-blds polygon.hl { fill: color-mix(in srgb, var(--c) 38%, transparent) !important; stroke: #fff !important; stroke-width: 2.5px !important; }
+.mapbox.sat polygon.lotp { fill: rgba(47, 95, 208, 0.18); stroke: #a9c4ff; }
+.mapbox.sat polygon.lotp.on { fill: rgba(47, 95, 208, 0.3); stroke: #a9c4ff; }
+.mapbox.sat .g-names text { fill: #fff; stroke: rgba(0, 0, 0, 0.7); }
+.mapbox.sat .plbl { fill: #ffe2b5; paint-order: stroke; stroke: rgba(0, 0, 0, 0.7); }
+.mapbox.sat .me span { color: #fff; }
+.mapbox.sat .pin .b { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); }

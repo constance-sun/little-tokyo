@@ -11,7 +11,7 @@ import { walkM } from "@/lib/route";
 import { waitSummary } from "@/lib/waits";
 import { cx } from "@/lib/cx";
 import {
-  addAvoid, getState, openOnMap, planKey, savePlan, setChat, setPlan, setSurvey, showPlanOnMap, toast, useApp, type Survey,
+  addAvoid, getState, openOnMap, planKey, savePlan, setChat, setPlan, setSurvey, showPlanOnMap, toast, useApp, useFeature, type Survey,
 } from "@/state/store";
 import type { ChatMsg, Plan, Pt } from "@/lib/types";
 
@@ -386,6 +386,7 @@ function PlanCard({ plan }: { plan: Plan }) {
   const me = useApp((s) => s.me);
   const live = useApp((s) => s.live);
   const plans = useApp((s) => s.acct.plans);
+  const noAccount = useFeature("noAccount");
   const stops = plan.stops.filter((s) => BY[s.id]);
   const park = plan.park ? BY[plan.park] : undefined;
   let prev: Pt = park || me;
@@ -472,9 +473,11 @@ function PlanCard({ plan }: { plan: Plan }) {
         <Button className="flex-1" size="lg" onPress={() => showPlanOnMap({ ...plan, stops })}>
           <Icon name="pin" size={16} /> See on map
         </Button>
-        <Button variant="secondary" className="flex-1" size="lg" onPress={() => void savePlan(plan)}>
-          {saved ? "Saved ✓" : "Save plan"}
-        </Button>
+        {!noAccount && (
+          <Button variant="secondary" className="flex-1" size="lg" onPress={() => void savePlan(plan)}>
+            {saved ? "Saved ✓" : "Save plan"}
+          </Button>
+        )}
       </Card.Footer>
     </Card>
   );

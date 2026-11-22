@@ -71,6 +71,9 @@ Conventions:
   - four usage tips
   - a QR code for `https://constance-sun.github.io/little-tokyo/` with a red ring
 - **Phone (width 700px or less, or a coarse pointer on a small screen).** The site fills the screen with no frame chrome and respects safe-area insets.
+- **Config panel.** On computers, a "Config" card sits left of the phone frame. It is where iteration controls live. It currently holds one dropdown that tracks the design iteration (stored as `lt-iteration`) and a 1-2 line note on what differs in that iteration. The list is `src/lib/iterations.ts`. Each iteration lists `features` the app reads with `iterationHas(id, feature)`; read them in components with `useFeature(f)` from the store. Iterations 1 and 2 don't change the UI. The features are:
+  - `satellite` (iterations 3 and 4)
+  - `eventsSheet`, `mapChips` and `noAccount` (iteration 4, the default; see "Iteration 4" below) Hidden on phones.
 - **Header** (hidden on the cover page). It shows the boxed red wordmark `little– / tokyo` (Archivo Black, links to the cover), a light/dark toggle (sun/moon), and an account button (person icon, filled red while on Account).
 - **Top menu** with numbered items: `01 Map · 02 Events · 03 Plan a day · 04 Legacy`. The current item is underlined in red with a red number. Items are spaced evenly.
 - **Hash router.** The views are `#home #map #events #plan #legacy #account`, and unknown hashes go to home. **The site always opens on the cover page**: any hash on first load is stripped.
@@ -91,7 +94,20 @@ Conventions:
 
 ## 3. Map (`#map`)
 
+### Iteration 4 (Google Maps style, default)
+- **Events sheet.** Events live in a bottom sheet on the map (`EventsBody compact` from `EventsView.tsx`), and there is no Events tab; `#events` shows the map.
+  - The sheet never closes. It snaps to peek (title, "N events this week", category pills), half and full.
+  - Tapping the peeking sheet raises it to half. Tapping empty map lowers it back to peek.
+- **Detail sheet.** Place, route, plan and event details open in the existing detail sheet. It slides in over the events sheet (z 20 over 19), and closing it reveals the events sheet again.
+  - An event opens at full height with a "‹ Events" button that closes it.
+- **Chips and buttons.** Parking and Restrooms come right after All in the chip row. The floating restroom, parking and zoom buttons are gone; only "Set where I am" remains. Pinch, wheel and double-tap still zoom.
+- **No accounts or dark mode.** The account button, the Account page (`#account` shows the map), Save/Saved on places, Save plan, the owner wait box and the light/dark toggle are hidden. The app is always light.
+- **Map credit.** The imagery/OSM credit floats just above whichever sheet is showing.
+
 ### 3.1 Base map
+
+- **Satellite (iteration 3, default).** Esri World Imagery tiles are drawn under everything as SVG `<image>`s placed in map metres (`src/views/map/imagery.ts`). Zoom 17 always covers the whole map; finer tiles (up to z20; z21 is a placeholder here) load for the visible area. In this mode the drawn ground, streets, green areas and building shadows are hidden. Buildings show only as translucent tints when a filter or selection lights them. Street and plaza names turn white with a dark halo. The credit reads "Imagery © Esri, Maxar, Earthstar Geographics · © OpenStreetMap". Styles are under `.mapbox.sat` in `map.css`.
+- **Georeference.** Map (0,0) is 34.0495° N, 118.2400° W: plain equirectangular, x = Δlon × 111320 × cos(34.0495°), y = −Δlat × 110574, no rotation. This was fitted against OSM building nodes, with a 3 cm median error.
 
 - The map is drawn from real OpenStreetMap geometry (`geo.json`, with x east and y south). Its bounds are `[-400,-340,560,520]`. It contains:
   - 339 building footprints
@@ -369,7 +385,7 @@ Opening hours are evaluated in **America/Los_Angeles**. Ranges past midnight car
 
 ## 10. localStorage keys
 
-`lt-theme`, `lt-filter`, `lt-subs`, `lt-me3`, `lt-saved`, `lt-survey`, `lt-avoid`, `lt-plan`, `lt-chat`, `lt-acct`.
+`lt-theme`, `lt-iteration`, `lt-filter`, `lt-subs`, `lt-me3`, `lt-saved`, `lt-survey`, `lt-avoid`, `lt-plan`, `lt-chat`, `lt-acct`.
 
 ## 11. Known differences in the React rebuild
 

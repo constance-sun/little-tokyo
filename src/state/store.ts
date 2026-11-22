@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { toast as heroToast } from "@heroui/react";
 import { BY } from "@/lib/data";
+import { DEFAULT_ITERATION, iterationHas, type Feature } from "@/lib/iterations";
 import { store } from "@/lib/storage";
 import { clearWalkCache } from "@/lib/route";
 import type { ChatMsg, Me, Plan } from "@/lib/types";
@@ -67,6 +68,7 @@ export interface AppState {
   plan: Plan | null;
   chat: ChatMsg[];
   avoid: string[];
+  iteration: string;
 }
 
 const metro = BY.metro;
@@ -91,6 +93,7 @@ let state: AppState = {
   plan: store.get<Plan | null>("lt-plan", null),
   chat: store.get<ChatMsg[]>("lt-chat", []),
   avoid: store.get<string[]>("lt-avoid", []),
+  iteration: store.get<string>("lt-iteration", DEFAULT_ITERATION),
 };
 
 const subs = new Set<() => void>();
@@ -107,6 +110,8 @@ const subscribe = (f: () => void) => {
 export function useApp<T>(sel: (s: AppState) => T): T {
   return useSyncExternalStore(subscribe, () => sel(state));
 }
+/** Is this feature on in the chosen design iteration? */
+export const useFeature = (f: Feature) => useApp((s) => iterationHas(s.iteration, f));
 
 /* ---------------- actions ---------------- */
 /** Short status message (HeroUI toast, shown at the top of the phone screen). */
@@ -146,6 +151,11 @@ export function setTheme(m: ThemeMode) {
 }
 if (typeof matchMedia !== "undefined")
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => setTheme(getState().themeMode));
+
+export function setIteration(iteration: string) {
+  store.set("lt-iteration", iteration);
+  setState({ iteration });
+}
 
 export function setSurvey(patch: Partial<Survey>) {
   const survey = { ...state.survey, ...patch };

@@ -112,3 +112,11 @@
     animation: none;
   }
 }
+
+/* dropdown lists: keep options clear of the popover's rounded corners */
+.select__popover {
+  padding: 0.5rem;
+}
+.select__popover [role="option"] {
+  border-radius: calc(var(--radius) * 1.25);
+}

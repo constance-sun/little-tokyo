@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Button, Card, Tabs, Toast } from "@heroui/react";
+import { Button, Card, Label, ListBox, Select, Tabs, Toast } from "@heroui/react";
 import { UNSAFE_PortalProvider } from "react-aria";
 import { Logo } from "@/components/common";
 import { Icon } from "@/lib/icons";
 import { SITE_URL } from "@/lib/data";
 import { cx } from "@/lib/cx";
-import { navigate, setState, setTheme, useApp, VIEWS, type View } from "@/state/store";
+import { ITERATIONS } from "@/lib/iterations";
+import { navigate, setIteration, setState, setTheme, useApp, useFeature, VIEWS, type View } from "@/state/store";
 import { useHostBootstrap } from "@/state/host";
 import HomeView from "@/views/HomeView";
 import MapView from "@/views/map/MapView";
@@ -57,13 +58,18 @@ function Clock() {
 
 function SiteHeader({ view }: { view: View }) {
   const dark = useApp((s) => s.dark);
-  const menuKey = MENU.some(([v]) => v === view) ? view : "";
+  const evSheet = useFeature("eventsSheet");
+  const noAccount = useFeature("noAccount");
+  const menu = evSheet ? MENU.filter(([v]) => v !== "events") : MENU;
+  const menuKey = menu.some(([v]) => v === view) ? view : "";
   return (
     <header className="bg-background relative z-30 flex-none">
       <div className="flex items-center gap-1.5 px-4 pt-2.5 pb-1">
         <a href="#home" className="mr-auto flex items-center no-underline" aria-label="Little Tokyo home">
           <Logo />
         </a>
+        {!noAccount && (
+          <>
         <Button
           isIconOnly
           size="sm"
@@ -82,6 +88,8 @@ function SiteHeader({ view }: { view: View }) {
         >
           <Icon name="user" size={17} />
         </Button>
+          </>
+        )}
       </div>
       <Tabs
         variant="secondary"
@@ -91,7 +99,7 @@ function SiteHeader({ view }: { view: View }) {
       >
         <Tabs.ListContainer>
           <Tabs.List aria-label="Site menu" className="w-full">
-            {MENU.map(([v, label]) => (
+            {menu.map(([v, label]) => (
               <Tabs.Tab key={v} id={v} className="flex-1 text-[13px] font-semibold whitespace-nowrap">
                 {label}
                 <Tabs.Indicator />
@@ -104,10 +112,54 @@ function SiteHeader({ view }: { view: View }) {
   );
 }
 
+/** Desktop-only panel left of the phone: where iteration controls live. */
+function ConfigPanel() {
+  const iteration = useApp((s) => s.iteration);
+  const current = ITERATIONS.find((i) => i.id === iteration) ?? ITERATIONS[0];
+  return (
+    <Card className="w-[300px] self-start p-6">
+      <Card.Header>
+        <div className="text-accent text-xs font-semibold tracking-[0.2em] uppercase">Config</div>
+        <Card.Title className="text-lg">Iterations</Card.Title>
+      </Card.Header>
+      <Card.Content className="gap-3">
+        <Select
+          fullWidth
+          aria-label="Iteration"
+          placeholder="Choose an iteration"
+          value={current.id}
+          onChange={(v) => v && setIteration(String(v))}
+        >
+          <Label className="sr-only">Iteration</Label>
+          <Select.Trigger>
+            <Select.Value />
+            <Select.Indicator />
+          </Select.Trigger>
+          <Select.Popover>
+            <ListBox>
+              {ITERATIONS.map((i) => (
+                <ListBox.Item key={i.id} id={i.id} textValue={i.name}>
+                  {i.name}
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
+              ))}
+            </ListBox>
+          </Select.Popover>
+        </Select>
+        <p className="text-muted m-0 text-[13px] leading-snug">{current.diff}</p>
+      </Card.Content>
+    </Card>
+  );
+}
+
 export default function App() {
   const phone = usePhone();
-  const view = useApp((s) => s.view);
-  const dark = useApp((s) => s.dark);
+  const rawView = useApp((s) => s.view);
+  const noAccount = useFeature("noAccount");
+  const evSheet = useFeature("eventsSheet");
+  const dark = useApp((s) => s.dark) && !noAccount; // iteration 4+: always light
+  // views that don't exist in this iteration fall back to the map
+  const view = (evSheet && rawView === "events") || (noAccount && rawView === "account") ? "map" : rawView;
   const [screenEl, setScreenEl] = useState<HTMLDivElement | null>(null);
   const getToastContainer = useCallback(() => screenEl ?? document.body, [screenEl]);
   useHashRouter();
@@ -129,12 +181,27 @@ export default function App() {
       )}
     >
       {!phone && (
-        <div className="bg-background text-foreground flex h-[50px] flex-none items-end justify-between pr-[30px] pb-1.5 pl-[34px] text-[15px] font-bold">
-          <Clock />
-          <span className="flex items-center gap-1.5 text-xs">
-            ▂▄▆█ <span>5G</span>
-            <i className="border-foreground relative h-[11px] w-6 rounded-[3px] border-[1.5px] after:absolute after:inset-[1.5px] after:right-[5px] after:rounded-[1px] after:bg-current" />
-          </span>
+        <div className="bg-background text-foreground flex h-[54px] flex-none items-start pt-[11px]">
+          <div className="flex h-[37px] flex-1 items-center justify-center pl-1 text-[17px] leading-none font-semibold tracking-[-0.01em]">
+            <Clock />
+          </div>
+          <div className="w-[126px] flex-none" />
+          <div className="flex h-[37px] flex-1 items-center justify-center gap-[7px] pr-1">
+            <svg width="19" height="12" viewBox="0 0 19 12" fill="currentColor" aria-hidden="true">
+              <rect x="0" y="8" width="3" height="4" rx="1" />
+              <rect x="5" y="5.5" width="3" height="6.5" rx="1" />
+              <rect x="10" y="3" width="3" height="9" rx="1" />
+              <rect x="15" y="0" width="3" height="12" rx="1" />
+            </svg>
+            <svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor" aria-hidden="true">
+              <path d="M8.5 2.3c2.4 0 4.6.9 6.3 2.5.1.1.3.1.4 0l1-1c.1-.1.1-.3 0-.4A11.4 11.4 0 0 0 8.5 0C5.5 0 2.7 1.200.4 3.400c-.1.1-.1.3 0 .4l1 1c.1.1.3.1.4 0A8.900 8.900 0 0 1 8.500 2.300Zm0 3.700c1.400 0 2.600.5 3.600 1.400.1.1.3.1.4 0l1-1c.1-.1.1-.3 0-.4a7.600 7.600 0 0 0-10 0c-.1.1-.1.3 0 .4l1 1c.1.1.3.1.4 0 1-.9 2.200-1.400 3.600-1.400Zm2.200 2.600c.1-.1.1-.3 0-.4a4.200 4.200 0 0 0-4.400 0c-.1.1-.1.3 0 .4l1.900 1.900c.1.1.3.1.4 0l2.100-1.900Z" transform="translate(0 .6)" />
+            </svg>
+            <svg width="27" height="13" viewBox="0 0 27 13" aria-hidden="true">
+              <rect x="0.5" y="0.5" width="22" height="12" rx="3.800" fill="none" stroke="currentColor" opacity=".4" />
+              <rect x="2" y="2" width="19" height="9" rx="2.500" fill="currentColor" />
+              <path d="M24 4.500v4c.8-.3 1.500-1.100 1.500-2s-.7-1.700-1.500-2Z" fill="currentColor" opacity=".45" />
+            </svg>
+          </div>
         </div>
       )}
       {view !== "home" && <SiteHeader view={view} />}
@@ -167,12 +234,13 @@ export default function App() {
   return phone ? (
     <div className="bg-background h-dvh w-full">{screen}</div>
   ) : (
-    <div className="bg-background-secondary flex min-h-full flex-wrap items-center justify-center gap-14 px-4 py-7">
+    <div className="bg-background-secondary flex min-h-full flex-wrap items-center justify-center gap-10 px-4 py-7">
+      <ConfigPanel />
       <div className="relative h-[844px] w-[390px] flex-none rounded-[58px] bg-[#0a0a0a] p-3 shadow-[0_40px_90px_rgba(0,0,0,.35),inset_0_0_0_2px_#2a2420]">
-        <div className="pointer-events-none absolute top-[11px] left-1/2 z-[60] h-[34px] w-[118px] -translate-x-1/2 rounded-[20px] bg-black" />
+        <div className="pointer-events-none absolute top-[23px] left-1/2 z-[60] h-[37px] w-[126px] -translate-x-1/2 rounded-full bg-black" />
         {screen}
       </div>
-      <Card className="max-w-[380px] p-2">
+      <Card className="max-w-[400px] p-6">
         <Card.Header>
           <div className="text-accent text-xs font-semibold tracking-[0.2em] uppercase">ACAD-376 · Little Tokyo project</div>
           <Logo className="mt-3 mb-1 rounded-[10px] border-4 px-3.5 pt-1 pb-2 text-[54px] leading-[0.84]" />

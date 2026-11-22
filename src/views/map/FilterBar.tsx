@@ -15,10 +15,14 @@ export const WAITOPTS: [string, string][] = [["any", "Any wait"], ["10", "Under 
 /** Floating pill look shared by the chips and the filter button (they sit on the map, so they need a surface + shadow). */
 const floatPill = "h-8 shrink-0 rounded-full px-3 text-[12.5px] font-semibold shadow-[var(--surface-shadow)]";
 
-export function Chips({ filter, onPick }: { filter: string; onPick: (k: string) => void }) {
+/** `front`: chip keys to pull up right after "All" (iteration 4 leads with Parking and Restrooms). */
+export function Chips({ filter, onPick, front = [] }: { filter: string; onPick: (k: string) => void; front?: string[] }) {
+  const chips = front.length
+    ? [CHIPS[0], ...front.map((k) => CHIPS.find((c) => c[0] === k)!), ...CHIPS.slice(1).filter((c) => !front.includes(c[0]))]
+    : CHIPS;
   return (
     <div className="no-scrollbar -mx-2.5 flex gap-1.5 overflow-x-auto px-2.5 pt-px pb-1.5">
-      {CHIPS.map(([k, l, ic]) => {
+      {chips.map(([k, l, ic]) => {
         const on = filter === k;
         const gold = on && k === "legacy";
         return (

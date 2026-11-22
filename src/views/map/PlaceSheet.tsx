@@ -9,7 +9,7 @@ import { domain, fmtM, fmtMin } from "@/lib/format";
 import { nearest, stepName, walkM, type Route } from "@/lib/route";
 import { waitSummary } from "@/lib/waits";
 import { cx } from "@/lib/cx";
-import { toast, toggleSaved, useApp } from "@/state/store";
+import { toast, toggleSaved, useApp, useFeature } from "@/state/store";
 import type { Me, Place } from "@/lib/types";
 import type { PlanLeg } from "./engine";
 
@@ -129,6 +129,7 @@ export function PlaceSheet({ p, tab, setTab, actions }: { p: Place; tab: string;
   const fromMe = walkM(me, p);
   const ws = p.cat === "eat" ? waitSummary(p, live) : null;
   const isSaved = saved.includes(p.id);
+  const noAccount = useFeature("noAccount");
   return (
     <>
       <PhotoStrip p={p} />
@@ -177,7 +178,7 @@ export function PlaceSheet({ p, tab, setTab, actions }: { p: Place; tab: string;
         <Act label="Directions" ic="dir" primary onClick={() => actions.startDirections(p)} />
         {p.cat !== "park" && <Act label="Parking" ic="park" onClick={() => actions.showNearest(p, "park")} />}
         {p.cat !== "wc" && <Act label="Restroom" ic="wc" onClick={() => actions.showNearest(p, "wc")} />}
-        <Act label={isSaved ? "Saved" : "Save"} ic="star" on={isSaved} onClick={() => toggleSaved(p.id)} />
+        {!noAccount && <Act label={isSaved ? "Saved" : "Save"} ic="star" on={isSaved} onClick={() => toggleSaved(p.id)} />}
         <Act label="Copy" ic="copy" onClick={() => copy(p.name + ", " + (p.address || "Little Tokyo, Los Angeles"), "Address copied")} />
       </div>
       {p.cat === "park" || p.cat === "wc" || p.cat === "metro" ? (
@@ -211,6 +212,7 @@ export function PlaceSheet({ p, tab, setTab, actions }: { p: Place; tab: string;
 
 function Overview({ p, actions }: { p: Place; actions: SheetActions }) {
   const live = useApp((s) => s.live);
+  const noAccount = useFeature("noAccount");
   const { d } = laNow();
   const ws = p.cat === "eat" ? waitSummary(p, live) : null;
   const w = p.wait;
@@ -283,7 +285,7 @@ function Overview({ p, actions }: { p: Place; actions: SheetActions }) {
         <b>{p.restroom && p.restroom !== "unknown" ? "Restroom: " + (p.restroom === true ? "for customers" : p.restroom) : "Restroom here: not confirmed"}</b>
         {nw && <small>Nearest likely restroom: {nw.p.name}, {fmtMin(nw.m)} walk</small>}
       </IRow>
-      {p.cat === "eat" && <OwnerBox p={p} />}
+      {p.cat === "eat" && !noAccount && <OwnerBox p={p} />}
       <h3 className="font-display mt-5 mb-1 text-base font-extrabold tracking-[-0.025em]">Nearby</h3>
       {near.map(({ q, m }) => (
         <ListRow key={q.id} p={q} right={fmtMin(m)} onClick={() => actions.openPlace(q)} />

@@ -88,10 +88,19 @@ function EvCard({ e, onOpen }: { e: EventItem; onOpen: () => void }) {
 }
 
 function EventDetail({ e, onClose }: { e: EventItem; onClose: () => void }) {
+  return (
+    <div className="bg-background absolute inset-0 z-[25] overflow-y-auto overscroll-contain">
+      <EventDetailBody e={e} onClose={onClose} />
+    </div>
+  );
+}
+
+/** Event detail content: hero, facts, description, actions. Used full-screen and in the map's sheet. */
+export function EventDetailBody({ e, onClose, backLabel = "‹ Events" }: { e: EventItem; onClose: () => void; backLabel?: string }) {
   const v = eventVenue(e);
   const ph = e.photo;
   return (
-    <div className="bg-background absolute inset-0 z-[25] overflow-y-auto overscroll-contain">
+    <>
       <div
         className="relative mx-3 mt-3 flex min-h-[260px] flex-col justify-end gap-2 overflow-hidden rounded-[28px] bg-cover bg-center px-4 pt-3.5 pb-5 text-white"
         style={cardBg(e, "rgba(0,0,0,.55) 0%,rgba(0,0,0,.1) 32%,rgba(0,0,0,.25) 55%,rgba(0,0,0,.85) 100%")}
@@ -102,7 +111,7 @@ function EventDetail({ e, onClose }: { e: EventItem; onClose: () => void }) {
           onPress={onClose}
           className="absolute top-3 left-3 bg-black/45 text-white backdrop-blur-md"
         >
-          ‹ Events
+          {backLabel}
         </Button>
         <div className="flex items-center gap-1.5">
           <EvIcon c={e.category} size={22} icon={13} />
@@ -148,7 +157,7 @@ function EventDetail({ e, onClose }: { e: EventItem; onClose: () => void }) {
           </Note>
         )}
       </div>
-    </div>
+    </>
   );
 }
 
@@ -167,11 +176,25 @@ function Fact({ k, v, icon }: { k: string; v: string; icon: string }) {
 }
 
 export default function EventsView() {
+  const [open, setOpen] = useState<EventItem | null>(null);
+  return (
+    <div className="relative h-full">
+      <div className="h-full overflow-y-auto overscroll-contain px-4 pt-5 pb-8">
+        <EventsBody onOpen={setOpen} />
+      </div>
+      {open && <EventDetail e={open} onClose={() => setOpen(null)} />}
+    </div>
+  );
+}
+
+/** The events page content (title, category pills, calendar, day + coming-up lists).
+ *  `compact` is the map-sheet version: a smaller title with a count, sized for a peeking sheet. */
+export function EventsBody({ onOpen, compact }: { onOpen: (e: EventItem) => void; compact?: boolean }) {
   const today = laToday();
   const [filter, setFilter] = useState("all");
   const [month, setMonth] = useState(today.slice(0, 7));
   const [sel, setSel] = useState(today);
-  const [open, setOpen] = useState<EventItem | null>(null);
+  const setOpen = onOpen;
 
   const list = useMemo(() => EVENTS.filter((e) => filter === "all" || e.category === filter), [filter]);
   const [Y, Mo] = month.split("-").map(Number);
@@ -185,10 +208,17 @@ export default function EventsView() {
 
   const chips: [string, string][] = [["all", "All"], ...Object.entries(ECAT).map(([k, v]) => [k, v[0]] as [string, string])];
 
+  const soon = EVENTS.filter((e) => (e.end || e.start) >= today && e.start <= iso(new Date(pd(today).getTime() + 6 * 864e5))).length;
   return (
-    <div className="relative h-full">
-      <div className="h-full overflow-y-auto overscroll-contain px-4 pt-5 pb-8">
-        <PageHeader title="What's on" lede="Festivals, pop-ups, shows." />
+    <>
+        {compact ? (
+          <div className="mb-3 flex items-baseline justify-between gap-2">
+            <h2 className="font-display m-0 text-[22px] leading-tight font-extrabold tracking-[-0.03em]">What's on</h2>
+            <span className="text-muted text-[13px]">{soon ? `${soon} event${soon > 1 ? "s" : ""} this week` : "Festivals, pop-ups, shows"}</span>
+          </div>
+        ) : (
+          <PageHeader title="What's on" lede="Festivals, pop-ups, shows." />
+        )}
         <div className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4 pt-px pb-1">
           {chips.map(([k, l]) => (
             <Button
@@ -272,8 +302,6 @@ export default function EventsView() {
           <EmptyNote>Event listings are being gathered.</EmptyNote>
         )}
         <Note className="mt-4">"Date to confirm" means the usual timing; the organizer hasn't announced this year's date yet.</Note>
-      </div>
-      {open && <EventDetail e={open} onClose={() => setOpen(null)} />}
-    </div>
+    </>
   );
 }

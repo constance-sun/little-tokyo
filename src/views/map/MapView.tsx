@@ -7,8 +7,11 @@ import { Icon } from "@/lib/icons";
 import { nearest, route, type Route } from "@/lib/route";
 import { store } from "@/lib/storage";
 import { cx } from "@/lib/cx";
-import { consumeMapCmd, getState, setMe, toast, useApp } from "@/state/store";
-import type { Cat, Me, Place, Plan } from "@/lib/types";
+import { iterationHas } from "@/lib/iterations";
+import { IMAGERY_CREDIT } from "./imagery";
+import { consumeMapCmd, getState, setMe, toast, useApp, useFeature } from "@/state/store";
+import { EventDetailBody, EventsBody } from "@/views/EventsView";
+import type { Cat, EventItem, Me, Place, Plan } from "@/lib/types";
 import { MapEngine, type PlanLeg } from "./engine";
 import { Chips, TypeFilter } from "./FilterBar";
 import { PlaceSheet, PlanSheet, RoutePanel, type PlanState, type SheetActions } from "./PlaceSheet";
@@ -18,16 +21,22 @@ type Mode =
   | { kind: "place" }
   | { kind: "route"; fromName: string; from: Place | Me; to: Place | Me; r: Route; label?: string }
   | { kind: "plan" }
+  | { kind: "event"; e: EventItem }
   | null;
 
 const isPlace = (x: Place | Me | null | undefined): x is Place => !!x && "cat" in x;
 const heightsFor = (H: number) => [0, Math.min(250, H * 0.42), Math.round(H * 0.6), H - 8];
+/** The events sheet (iteration 4) never closes: peek shows its title and category pills. */
+const evHeightsFor = (H: number) => [0, Math.min(156, H * 0.3), Math.round(H * 0.6), H - 8];
 const DIR_GROUPS: [Cat, string][] = [["eat", "Eat"], ["shop", "Shop"], ["explore", "Explore"], ["park", "Parking"], ["wc", "Restrooms"], ["metro", "Transit"]];
 
 export default function MapView({ active }: { active: boolean }) {
   const me = useApp((s) => s.me);
   const live = useApp((s) => s.live);
   const mapCmd = useApp((s) => s.mapCmd);
+  const satellite = useApp((s) => iterationHas(s.iteration, "satellite"));
+  const evMode = useFeature("eventsSheet");
+  const chipsMode = useFeature("mapChips");
 
   const boxRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -38,6 +47,10 @@ export default function MapView({ active }: { active: boolean }) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const engRef = useRef<MapEngine | null>(null);
+  const evRef = useRef<HTMLDivElement>(null);
+  const evBodyRef = useRef<HTMLDivElement>(null);
+  const evModeRef = useRef(evMode);
+  evModeRef.current = evMode;
   const pickRef = useRef(false);
 
   const [H, setH] = useState(600);
@@ -52,6 +65,8 @@ export default function MapView({ active }: { active: boolean }) {
   const [tab, setTab] = useState("overview");
   const [sheetState, setSheetState] = useState(0);
   const sheetStateRef = useRef(0);
+  const [evState, setEvState] = useState(1);
+  const evStateRef = useRef(1);
   const [dir, setDir] = useState<{ from: string; to: string } | null>(null);
   const [pv, setPv] = useState<PlanState | null>(null);
   const [q, setQ] = useState("");
@@ -60,12 +75,29 @@ export default function MapView({ active }: { active: boolean }) {
   const HRef = useRef(H);
   HRef.current = H;
   const heights = () => heightsFor(engRef.current?.H ?? HRef.current);
-  const sheetH = () => heights()[sheetStateRef.current] || 0;
+  const evHeights = () => (evModeRef.current ? evHeightsFor(engRef.current?.H ?? HRef.current) : [0, 0, 0, 0]);
+  /** Height of whatever sheet covers the bottom of the map (the detail sheet sits over the events sheet). */
+  const sheetH = () => Math.max(heights()[sheetStateRef.current] || 0, evHeights()[evStateRef.current] || 0);
 
   function setSheet(s: number) {
     sheetStateRef.current = s;
     setSheetState(s);
     if (sheetRef.current) sheetRef.current.style.height = heights()[s] + "px";
+  }
+  function setEv(s: number) {
+    evStateRef.current = s;
+    setEvState(s);
+    if (evRef.current) evRef.current.style.height = evHeights()[s] + "px";
+  }
+  function openEvent(e: EventItem) {
+    clearPlan();
+    setDir(null);
+    setSelected(null);
+    setRouteTarget(null);
+    engRef.current?.clearRoute();
+    setMode({ kind: "event", e });
+    setSheet(3);
+    if (bodyRef.current) bodyRef.current.scrollTop = 0;
   }
 
   /* ---------------- actions (fresh closures every render, read through actRef) ---------------- */
@@ -189,8 +221,8 @@ export default function MapView({ active }: { active: boolean }) {
   }
 
   const actions: SheetActions = { openPlace, startDirections, showNearest, showRouteBetween };
-  const actRef = useRef({ ...actions, closeSheet, focusLeg, showPlan, selected });
-  actRef.current = { ...actions, closeSheet, focusLeg, showPlan, selected };
+  const actRef = useRef({ ...actions, closeSheet, focusLeg, showPlan, selected, setEv, sheetH });
+  actRef.current = { ...actions, closeSheet, focusLeg, showPlan, selected, setEv, sheetH };
 
   /* ---------------- engine lifecycle ---------------- */
   useLayoutEffect(() => {
@@ -205,8 +237,12 @@ export default function MapView({ active }: { active: boolean }) {
           setMe(x, y);
           return "picked";
         },
-        onEmptyTap: () => actRef.current.closeSheet(),
-        sheetH: () => sheetH(),
+        onEmptyTap: () => {
+          // like Google Maps: a tap on the map closes the detail sheet, or else lowers the events sheet
+          if (sheetStateRef.current) actRef.current.closeSheet();
+          else if (evStateRef.current > 1) actRef.current.setEv(1);
+        },
+        sheetH: () => actRef.current.sheetH(),
       },
     });
     engRef.current = eng;
@@ -217,6 +253,7 @@ export default function MapView({ active }: { active: boolean }) {
       eng.render();
       setH(eng.H);
       if (sheetRef.current) sheetRef.current.style.height = heightsFor(eng.H)[sheetStateRef.current] + "px";
+      if (evRef.current) evRef.current.style.height = (evModeRef.current ? evHeightsFor(eng.H)[evStateRef.current] : 0) + "px";
     });
     ro.observe(boxRef.current!);
     return () => {
@@ -235,6 +272,16 @@ export default function MapView({ active }: { active: boolean }) {
     engRef.current?.setMe(me);
   }, [me]);
 
+  useEffect(() => {
+    engRef.current?.setSatellite(satellite);
+  }, [satellite]);
+
+  // switching iterations shows or hides the events sheet
+  useEffect(() => {
+    setEv(evMode ? Math.max(1, evStateRef.current) : 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [evMode]);
+
   // the section is display:none while another view is showing: re-measure when it comes back
   useEffect(() => {
     if (!active) {
@@ -248,6 +295,7 @@ export default function MapView({ active }: { active: boolean }) {
       eng.render();
       setH(eng.H);
       if (sheetRef.current) sheetRef.current.style.height = heightsFor(eng.H)[sheetStateRef.current] + "px";
+      if (evRef.current) evRef.current.style.height = (evModeRef.current ? evHeightsFor(eng.H)[evStateRef.current] : 0) + "px";
       if (!getState().mapCmd) eng.intro();
     });
     return () => cancelAnimationFrame(id);
@@ -273,43 +321,51 @@ export default function MapView({ active }: { active: boolean }) {
     return () => cancelAnimationFrame(id);
   }, [active, mapCmd]);
 
-  /* ---------------- sheet drag ---------------- */
+  /* ---------------- sheet drag (detail sheet + events sheet) ---------------- */
   const drag = useRef<{ y: number; h: number } | null>(null);
-  const grabDown = (e: React.PointerEvent) => {
-    drag.current = { y: e.clientY, h: sheetRef.current!.getBoundingClientRect().height };
-    sheetRef.current!.classList.add("nodrag");
-    (e.target as Element).setPointerCapture(e.pointerId);
-  };
-  const grabMove = (e: React.PointerEvent) => {
-    const d = drag.current;
-    if (!d) return;
-    sheetRef.current!.style.height = Math.max(60, Math.min(heights()[3], d.h - (e.clientY - d.y))) + "px";
-  };
-  const grabUp = (e: React.PointerEvent) => {
-    const d = drag.current;
-    if (!d) return;
-    drag.current = null;
-    const el = sheetRef.current!;
-    el.classList.remove("nodrag");
-    const h = el.getBoundingClientRect().height;
-    const hs = heights();
-    if (Math.abs(e.clientY - d.y) <= 6) {
-      setSheet(sheetStateRef.current === 3 ? 2 : 3);
-      return;
-    }
-    if (h < hs[1] * 0.6) {
-      closeSheet();
-      return;
-    }
-    let best = 1, bd = 1e9;
-    hs.forEach((v, i) => {
-      if (i && Math.abs(v - h) < bd) {
-        bd = Math.abs(v - h);
-        best = i;
-      }
-    });
-    setSheet(best);
-  };
+  function grabHandlers(
+    ref: React.RefObject<HTMLDivElement | null>, hsOf: () => number[], cur: () => number, set: (s: number) => void, onClose: () => void,
+  ) {
+    return {
+      onPointerDown: (e: React.PointerEvent) => {
+        drag.current = { y: e.clientY, h: ref.current!.getBoundingClientRect().height };
+        ref.current!.classList.add("nodrag");
+        (e.target as Element).setPointerCapture(e.pointerId);
+      },
+      onPointerMove: (e: React.PointerEvent) => {
+        const d = drag.current;
+        if (!d) return;
+        ref.current!.style.height = Math.max(60, Math.min(hsOf()[3], d.h - (e.clientY - d.y))) + "px";
+      },
+      onPointerUp: (e: React.PointerEvent) => {
+        const d = drag.current;
+        if (!d) return;
+        drag.current = null;
+        const el = ref.current!;
+        el.classList.remove("nodrag");
+        const h = el.getBoundingClientRect().height;
+        const hs = hsOf();
+        if (Math.abs(e.clientY - d.y) <= 6) {
+          set(cur() === 3 ? 2 : 3);
+          return;
+        }
+        if (h < hs[1] * 0.6) {
+          onClose();
+          return;
+        }
+        let best = 1, bd = 1e9;
+        hs.forEach((v, i) => {
+          if (i && Math.abs(v - h) < bd) {
+            bd = Math.abs(v - h);
+            best = i;
+          }
+        });
+        set(best);
+      },
+    };
+  }
+  const sheetGrab = grabHandlers(sheetRef, heights, () => sheetStateRef.current, setSheet, closeSheet);
+  const evGrab = grabHandlers(evRef, evHeights, () => evStateRef.current, setEv, () => setEv(1));
 
   /* ---------------- chips + search ---------------- */
   function pickChip(k: string) {
@@ -335,7 +391,8 @@ export default function MapView({ active }: { active: boolean }) {
     return PLACES.filter((p) => (p.name + " " + (p.type || "") + " " + p.tags.join(" ") + " " + (p.desc || "") + " " + (p.knownFor || []).join(" ")).toLowerCase().includes(t)).slice(0, 8);
   }, [q]);
 
-  const fabBottom = Math.min(heights()[sheetState], H * 0.62);
+  const fabBottom = Math.min(Math.max(heights()[sheetState], evHeights()[evState] || 0), H * 0.62);
+  const topHidden = sheetState === 3 || (evMode && evState === 3 && !sheetState);
   const dirOptions = useMemo(
     () => DIR_GROUPS.map(([k, l]) => [l, PLACES.filter((p) => p.cat === k).sort((a, b) => a.name.localeCompare(b.name))] as [string, Place[]]).filter(([, items]) => items.length),
     [],
@@ -352,7 +409,7 @@ export default function MapView({ active }: { active: boolean }) {
       </div>
 
       {/* top: search or directions, then chips */}
-      <div className="pointer-events-none absolute inset-x-2.5 top-2.5 z-10 flex flex-col gap-2 *:pointer-events-auto" style={{ visibility: sheetState === 3 ? "hidden" : "visible" }}>
+      <div className="pointer-events-none absolute inset-x-2.5 top-2.5 z-10 flex flex-col gap-2 *:pointer-events-auto" style={{ visibility: topHidden ? "hidden" : "visible" }}>
         {!dir ? (
           <div className="relative">
             <SearchField
@@ -420,7 +477,7 @@ export default function MapView({ active }: { active: boolean }) {
             <DirSelect label="Destination" value={dir.to} me={me} groups={dirOptions} onChange={(v) => { setDir({ ...dir, to: v }); runDirections(dir.from, v); }} />
           </Surface>
         )}
-        {!dir && <Chips filter={filter} onPick={pickChip} />}
+        {!dir && <Chips filter={filter} onPick={pickChip} front={chipsMode ? ["park", "wc"] : []} />}
         {!dir && SUBS[filter as Cat] && (
           <div className="-mt-1">
             <TypeFilter filter={filter as Cat} subs={subs} waitF={waitF} open={fpOpen} setOpen={setFpOpen} setSubs={setSubs} setWaitF={setWaitF} />
@@ -429,10 +486,12 @@ export default function MapView({ active }: { active: boolean }) {
       </div>
 
       {/* floating buttons */}
-      <div className="mapfloat absolute right-2.5 z-[9] flex flex-col gap-2" style={{ bottom: fabBottom + 12, visibility: sheetState >= 2 ? "hidden" : "visible" }}>
+      <div className="mapfloat absolute right-2.5 z-[9] flex flex-col gap-2" style={{ bottom: fabBottom + 26, visibility: sheetState >= 2 || evState >= 2 ? "hidden" : "visible" }}>
         <Button isIconOnly variant="tertiary" className={fabCls} aria-label="Set where I am" onPress={() => { pickRef.current = true; toast("Tap the map where you are"); }}>
           <Icon name="pin" size={20} />
         </Button>
+        {!chipsMode && (
+          <>
         <Button
           isIconOnly
           variant={showWC ? "primary" : "tertiary"}
@@ -473,32 +532,57 @@ export default function MapView({ active }: { active: boolean }) {
             −
           </Button>
         </div>
+          </>
+        )}
       </div>
 
       <a
         href="https://www.openstreetmap.org/copyright"
         target="_blank"
         rel="noopener"
-        className="text-muted absolute right-1.5 bottom-1 z-[8] rounded-full bg-[var(--glass)] px-1.5 py-px text-[9.5px] no-underline"
+        className="mapfloat text-muted absolute right-1.5 z-[8] rounded-full bg-[var(--glass)] px-1.5 py-px text-[9.5px] no-underline"
+        style={{ bottom: fabBottom + 4 }}
       >
-        © OpenStreetMap
+        {satellite ? `${IMAGERY_CREDIT} · © OpenStreetMap` : "© OpenStreetMap"}
       </a>
       <div className="mapfloat text-muted pointer-events-none absolute left-3 z-[8] flex flex-col gap-0.5 text-[10px] font-medium" style={{ bottom: fabBottom + 14 }}>
         <span ref={scaleTxtRef}>100 m</span>
         <i ref={scaleBarRef} className="block h-[5px] border-[1.5px] border-t-0 border-current" style={{ width: 60 }} />
       </div>
 
-      {/* bottom sheet */}
+      {/* events sheet (iteration 4): always there under the map, like Google Maps' explore sheet */}
+      {evMode && (
+        <div
+          ref={evRef}
+          className="mapsheet bg-overlay absolute inset-x-0 bottom-0 z-[19] flex flex-col rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,.14)]"
+          style={{ height: 0 }}
+          aria-label="Events"
+        >
+          <div className="flex flex-none cursor-grab touch-none justify-center pt-2 pb-1" {...evGrab} onPointerCancel={evGrab.onPointerUp}>
+            <i className="bg-default h-[5px] w-10 rounded-full" />
+          </div>
+          <div
+            ref={evBodyRef}
+            className={cx("min-h-0 flex-1 overscroll-contain px-4 pt-1 pb-8", evState >= 2 ? "overflow-y-auto" : "overflow-hidden")}
+            onClick={() => { if (evStateRef.current < 2) setEv(2); }}
+          >
+            <EventsBody compact onOpen={openEvent} />
+          </div>
+        </div>
+      )}
+
+      {/* detail sheet (place, route, plan, event): slides over the events sheet */}
       <div
         ref={sheetRef}
         className="mapsheet bg-overlay absolute inset-x-0 bottom-0 z-20 flex flex-col rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,.14)]"
         style={{ height: 0 }}
       >
-        <div className="flex flex-none cursor-grab touch-none justify-center pt-2 pb-1" onPointerDown={grabDown} onPointerMove={grabMove} onPointerUp={grabUp} onPointerCancel={grabUp}>
+        <div className="flex flex-none cursor-grab touch-none justify-center pt-2 pb-1" {...sheetGrab} onPointerCancel={sheetGrab.onPointerUp}>
           <i className="bg-default h-[5px] w-10 rounded-full" />
         </div>
         <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {mode?.kind === "place" && selected && <PlaceSheet p={selected} tab={tab} setTab={setTab} actions={actions} />}
+          {mode?.kind === "event" && <EventDetailBody e={mode.e} onClose={closeSheet} />}
           {mode?.kind === "route" && (
             <RoutePanel
               fromName={mode.fromName}

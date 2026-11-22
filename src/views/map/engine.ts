@@ -1,3 +1,4 @@
+import { Imagery } from "./imagery";
 import { CATS, GEO, PLACES, POI, isClosedish, isGone } from "@/lib/data";
 import { isOpen } from "@/lib/hours";
 import { ICONS } from "@/lib/icons";
@@ -101,6 +102,9 @@ export class MapEngine {
   me: Me | null = null;
   st: MapFilterState = { filter: "all", subs: new Set(), waitF: "any", showWC: false, selected: null, routeTarget: null, planMode: false, live: {} };
   labT = 0;
+  imgT = 0;
+  imagery!: Imagery;
+  satellite = false;
   parkZoomed = false;
   private off: (() => void)[] = [];
 
@@ -125,6 +129,7 @@ export class MapEngine {
   destroy() {
     cancelAnimationFrame(this.anim);
     clearTimeout(this.labT);
+    clearTimeout(this.imgT);
     this.off.forEach((f) => f());
     this.world.replaceChildren();
     this.svg.querySelector("defs")?.remove();
@@ -140,7 +145,8 @@ export class MapEngine {
     this.svg.prepend(defs);
     const world = this.world;
     world.setAttribute("clip-path", "url(#lt-bounds)");
-    world.append(sv("rect", { x: BX0, y: BY0, width: BX1 - BX0, height: BY1 - BY0, fill: "var(--ground)" }));
+    world.append(sv("rect", { x: BX0, y: BY0, width: BX1 - BX0, height: BY1 - BY0, fill: "var(--ground)", class: "g-ground" }));
+    this.imagery = new Imagery(world as SVGGElement, [BX0, BY0, BX1, BY1]);
     const ptsAttr = (p: [number, number][]) => p.map((q) => q.join(",")).join(" ");
     for (const a of GEO.areas) {
       if (a.p.length < 3) continue;
@@ -149,7 +155,7 @@ export class MapEngine {
         fill: a.k === "green" ? "var(--green)" : a.k === "parking" ? "var(--lot)" : "var(--plaza)",
         stroke: a.k === "parking" ? "var(--lot-edge)" : "none",
         "stroke-width": 1,
-        class: a.k === "parking" ? "lotp" : "",
+        class: a.k === "parking" ? "lotp" : "area",
       }) as SVGPolygonElement;
       world.append(pg);
       if (a.k === "parking") this.lots.push(pg);
@@ -157,7 +163,7 @@ export class MapEngine {
     // streets: casing then fill, minor first
     const WD: Record<string, number> = { primary: 20, secondary: 17, tertiary: 14, residential: 11, unclassified: 11, living_street: 9, primary_link: 12, secondary_link: 11, service: 6, pedestrian: 7, footway: 2.6, steps: 2.6 };
     const order = ["service", "footway", "steps", "pedestrian", "living_street", "residential", "unclassified", "tertiary", "secondary_link", "primary_link", "secondary", "primary"];
-    const cas = sv("g"), fil = sv("g");
+    const cas = sv("g", { class: "g-streets" }), fil = sv("g", { class: "g-streets" });
     const d = (p: [number, number][]) => "M" + p.map((q) => q.join(" ")).join("L");
     for (const cls of order)
       for (const r of GEO.roads) {
@@ -176,7 +182,7 @@ export class MapEngine {
       }
     world.append(cas, fil);
     // buildings: soft shadow + footprint; empty buildings stay off the map
-    const sh = sv("g", { transform: "translate(1.6 2.4)" }), bl = sv("g");
+    const sh = sv("g", { transform: "translate(1.6 2.4)", class: "g-bshadow" }), bl = sv("g", { class: "g-blds" });
     for (const b of GEO.buildings) {
       const inside = PLACES.filter((p) => (POI(p) || p.cat === "park" || p.cat === "wc") && pip(p.x, p.y, b.p));
       if (!inside.length && !b.pk) continue;
@@ -190,7 +196,7 @@ export class MapEngine {
     }
     world.append(sh, bl);
     // street names along the road
-    const namesG = sv("g", { "font-family": "Archivo, sans-serif", "font-size": 10, "letter-spacing": ".9", fill: "var(--label)", "font-weight": 500, "pointer-events": "none" }) as SVGGElement;
+    const namesG = sv("g", { "font-family": "Archivo, sans-serif", "font-size": 10, "letter-spacing": ".9", fill: "var(--label)", "font-weight": 500, "pointer-events": "none", class: "g-names" }) as SVGGElement;
     const seen: Record<string, number> = {};
     const L = (p: [number, number][]) => { let s = 0; for (let i = 1; i < p.length; i++) s += Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]); return s; };
     GEO.roads
@@ -217,7 +223,7 @@ export class MapEngine {
     this.namesG = namesG;
     // plaza labels
     ([["WELLER COURT", -205, -82], ["HONDA PLAZA", 112, 310], ["LITTLE TOKYO GALLERIA", 138, 500], ["JANM PLAZA", 100, -22], ["NOGUCHI PLAZA", -150, 70]] as [string, number, number][]).forEach(([t, x, y]) => {
-      const el = sv("text", { x, y, "font-size": 8, "text-anchor": "middle", fill: "var(--plaza-label)", "font-weight": 700, "font-family": "Archivo, sans-serif", "letter-spacing": ".8", "pointer-events": "none" }, t) as SVGTextElement;
+      const el = sv("text", { x, y, "font-size": 8, "text-anchor": "middle", fill: "var(--plaza-label)", "font-weight": 700, "font-family": "Archivo, sans-serif", "letter-spacing": ".8", "pointer-events": "none", class: "plbl" }, t) as SVGTextElement;
       world.append(el);
       this.plbls.push(el);
     });
@@ -277,7 +283,7 @@ export class MapEngine {
       this.namesG.setAttribute("font-size", (10.5 / Math.min(z, 3.2)).toFixed(2));
       this.namesG.setAttribute("stroke-width", (3 / z).toFixed(2));
       this.namesG.style.display = z < 0.8 ? "none" : "";
-      this.plbls.forEach((t) => { t.setAttribute("font-size", (9.5 / Math.min(z, 3)).toFixed(2)); t.style.display = z < 1 ? "none" : ""; });
+      this.plbls.forEach((t) => { t.setAttribute("font-size", (9.5 / Math.min(z, 3)).toFixed(2)); t.setAttribute("stroke-width", (2.6 / z).toFixed(2)); t.style.display = z < 1 ? "none" : ""; });
     }
     // parking pins show under "All" only when zoomed in
     const pz = z >= 1.6;
@@ -297,6 +303,22 @@ export class MapEngine {
     const target = [10, 20, 50, 100, 200, 500].find((m) => m * z >= 48) || 500;
     this.scaleBar.style.width = (target * z).toFixed(0) + "px";
     this.scaleTxt.textContent = target + " m";
+    if (this.satellite) {
+      clearTimeout(this.imgT);
+      this.imgT = window.setTimeout(() => this.loadImagery(), 120);
+    }
+  }
+
+  /** Satellite mode: photo imagery under the map, vector ground/streets hidden (styled in map.css under .sat). */
+  setSatellite(on: boolean) {
+    this.satellite = on;
+    this.box.classList.toggle("sat", on);
+    if (on) this.loadImagery();
+  }
+  private loadImagery() {
+    const m = 80 / this.cam.z; // preload a margin around the view
+    const [x0, y0] = this.toWorld(0, 0), [x1, y1] = this.toWorld(this.W, this.H);
+    this.imagery.update([x0 - m, y0 - m, x1 + m, y1 + m], this.cam.z);
   }
 
   flyTo(cx: number, cy: number, z: number, ms = 650) {
