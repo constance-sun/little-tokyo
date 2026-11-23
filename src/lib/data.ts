@@ -12,7 +12,7 @@ import type { Cat, EventItem, Photo, Place, Wait } from "./types";
    Raw data (extracted from the original single-file site).
    Map geometry: © OpenStreetMap contributors (ODbL). Positions in metres, x east / y south.
    ====================================================================== */
-export const SITE_URL = "https://little-tokyo-six.vercel.app/";
+export const SITE_URL = "https://constance-sun.github.io/little-tokyo/";
 
 export interface Geo {
   bounds: [number, number, number, number];
@@ -22,7 +22,9 @@ export interface Geo {
   graph: { n: [number, number][]; e: [number, number, number][]; names: string[] };
 }
 export const GEO = GEO_JSON as unknown as Geo;
-export const IMGS = IMGS_JSON as Record<string, string>;
+/** image key → URL. images.json stores root paths ("/images/x.jpg"); prefix the deploy base (GitHub Pages serves from /little-tokyo/). */
+export const asset = (path: string) => import.meta.env.BASE_URL + path.replace(/^\//, "");
+export const IMGS = Object.fromEntries(Object.entries(IMGS_JSON as Record<string, string>).map(([k, v]) => [k, asset(v)]));
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const R = R_JSON as Record<string, any>;
 const POS = POS_JSON as Record<string, { x: number; y: number; src?: string }>;

@@ -18,7 +18,11 @@ npm run typecheck
 
 ### Deploying
 
-The live site is **Vercel**: `https://little-tokyo-six.vercel.app` (project `little-tokyo`, linked in `.vercel/`). The QR code and the fake browser bar use `SITE_URL` in `src/lib/data.ts`. To ship, push `main` and run `vercel deploy --prod` (Vercel builds with `npm run build` and serves `dist/`). GitHub Pages is turned off. It used to serve the repo's raw source, which showed a blank page.
+The live site is **GitHub Pages**: `https://constance-sun.github.io/little-tokyo/`. Pushing to `main` deploys it: `.github/workflows/pages.yml` runs `npm ci` and `npm run build`, then publishes `dist/`. Watch it under the repo's Actions tab.
+- One-time repo setting (repo owner only): Settings → Pages → Source = **GitHub Actions**. With the old "Deploy from a branch" setting, Pages serves the raw source, which shows a blank page.
+- The site lives under `/little-tokyo/`, so `vite build` uses `base: "/little-tokyo/"` while dev stays at `/` (`vite.config.ts`). Vite rewrites paths in `index.html` and CSS by itself. URLs built in code must go through `asset()` from `src/lib/data.ts` (it prefixes `import.meta.env.BASE_URL`). `IMGS` already does this, so never hard-code `"/images/…"` in JS.
+- To test a production build locally, serve `dist/` under a `little-tokyo/` folder (e.g. copy it to `<tmp>/little-tokyo` and run `python3 -m http.server` in `<tmp>`), then open `/little-tokyo/`.
+- Vercel (`little-tokyo-six.vercel.app`) was the stopgap host. Don't redeploy it: builds now assume `/little-tokyo/`. Delete the Vercel project once Pages is live.
 
 ## Stack
 
@@ -69,7 +73,7 @@ Conventions:
 
 ## 1. Frame and navigation
 
-- **Computer (width over 700px, fine pointer).** The site renders inside a 390×844 phone frame with a dynamic island, a status bar with a live LA clock ("9:41" style, refreshed every 30s, with 5G and battery glyphs), and a fake browser bar showing `little-tokyo-six.vercel.app`. Beside the frame sits just a QR code for `https://little-tokyo-six.vercel.app/` on a plain white rounded tile (no ring, no text; it has an `aria-label`). The original's "about" panel (eyebrow, boxed logo, description, usage tips and a red-ringed QR) was removed in the rebuild.
+- **Computer (width over 700px, fine pointer).** The site renders inside a 390×844 phone frame with a dynamic island, a status bar with a live LA clock ("9:41" style, refreshed every 30s, with 5G and battery glyphs), and a fake browser bar showing `constance-sun.github.io/little-tokyo`. Beside the frame sits just a QR code for `https://constance-sun.github.io/little-tokyo/` on a plain white rounded tile (no ring, no text; it has an `aria-label`). The original's "about" panel (eyebrow, boxed logo, description, usage tips and a red-ringed QR) was removed in the rebuild.
 - **Phone (width 700px or less, or a coarse pointer on a small screen).** The site fills the screen with no frame chrome and respects safe-area insets.
 - **Config panel.** On computers, a "Config" card sits left of the phone frame. It is where iteration controls live. It currently holds one dropdown that tracks the design iteration (stored as `lt-iteration`) and a 1-2 line note on what differs in that iteration. The list is `src/lib/iterations.ts`. Each iteration lists `features` the app reads with `iterationHas(id, feature)`; read them in components with `useFeature(f)` from the store. Iterations 1 and 2 don't change the UI. The features are:
   - `satellite` (iterations 3 and 4)

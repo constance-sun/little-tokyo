@@ -4,7 +4,7 @@ import { Button, Card, Label, ListBox, Select, Slider, Tabs, Toast } from "@hero
 import { UNSAFE_PortalProvider } from "react-aria";
 import { Logo } from "@/components/common";
 import { Icon } from "@/lib/icons";
-import { SITE_URL } from "@/lib/data";
+import { asset, SITE_URL } from "@/lib/data";
 import { cx } from "@/lib/cx";
 import { ITERATIONS } from "@/lib/iterations";
 import { navigate, newChat, PIN_SPACE_DEFAULT, setIteration, setPinSpace, setState, setTheme, useApp, useFeature, VIEWS, type View } from "@/state/store";
@@ -120,7 +120,7 @@ function MenuBar({ open, onToggle, view }: { open: boolean; onToggle: () => void
   return (
     <header className="bg-background relative z-30 flex h-[60px] flex-none items-center justify-between px-4">
       <a href="#home" className="flex items-center" aria-label="Little Tokyo home">
-        <img src="/images/emblem.png" alt="" width={45} height={44} className="size-11 object-contain" />
+        <img src={asset("/images/emblem.png")} alt="" width={45} height={44} className="size-11 object-contain" />
       </a>
       <div className="flex items-center gap-1">
       {chatGuide && view === "plan" && hasChat && !open && (
