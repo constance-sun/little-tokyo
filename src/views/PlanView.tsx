@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { Button, Card, Chip, Input, Label, Spinner, Switch, TextArea, TextField, ToggleButton, ToggleButtonGroup } from "@heroui/react";
-import { CatDot, LegacyChip, ListRow, Note, Page, PageHeader, Tile } from "@/components/common";
+import { CatDot, LegacyChip, ListRow, Note, Page, PageHeader, PlaceThumb, Tile } from "@/components/common";
 import { BY } from "@/lib/data";
 import { browserDictation, getHost, type Dictation } from "@/lib/claude";
 import { fmtMin, prefersReducedMotion } from "@/lib/format";
@@ -419,12 +419,18 @@ function PlanCard({ plan, onDetails, onMap }: { plan: Plan; onDetails?: (p: Plac
             <div key={s.id + j}>
               <Walk m={wm} />
               <Row marker={<StopDot p={p} />} last={!park && j === stops.length - 1}>
+                {/* chat Guide: photo first, text kept short */}
+                {onDetails && (
+                  <button type="button" onClick={() => onDetails(p)} aria-label={`${p.name} details`} className="mb-2 block w-full p-0">
+                    <PlaceThumb p={p} icon={40} className="h-[150px] w-full rounded-[18px]" />
+                  </button>
+                )}
                 <div className="text-muted text-xs font-medium">{[s.time, s.minutes ? s.minutes + " min" : null].filter(Boolean).join(" · ")}</div>
                 <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                   <b className="text-sm">{p.name}</b>
                   {p.legacy && <LegacyChip />}
                 </div>
-                {s.why && <p className="m-0 mt-1 text-sm">{s.why}</p>}
+                {s.why && <p className={cx("m-0 mt-1 text-sm", onDetails && "text-muted line-clamp-2")}>{s.why}</p>}
                 {ws && <Note className="mt-0.5">⏱ {ws.t}</Note>}
                 <div className="mt-2 flex items-center gap-1.5">
                   {!onDetails && (<>
@@ -695,12 +701,12 @@ function ChatGuide() {
             variant={listening ? "primary" : "secondary"}
             aria-label={v.micOn ? "Stop listening" : "Talk"}
             onPress={() => void toggleMic()}
-            className={cx("size-[42px] flex-none rounded-full", listening && "pulse-soft")}
+            className={cx("size-10 flex-none rounded-full", listening && "pulse-soft")}
           >
             <Icon name="mic" size={20} />
           </Button>
           {/* the field: text box with a small send button inside it on the right */}
-          <div className="bg-field focus-within:ring-foreground/20 flex min-h-[42px] flex-1 items-end rounded-[21px] shadow-[var(--field-shadow,0_0_0_1px_var(--border))] focus-within:ring-2">
+          <div className="bg-field focus-within:ring-foreground/20 flex min-h-10 flex-1 items-end rounded-[20px] shadow-[var(--field-shadow,0_0_0_1px_var(--border))] focus-within:ring-2">
             <TextArea
               ref={taRef}
               rows={1}
@@ -716,7 +722,7 @@ function ChatGuide() {
                   void send();
                 }
               }}
-              className="max-h-[110px] min-h-[42px] flex-1 resize-none border-0 bg-transparent py-[11px] pr-1 pl-4 text-sm leading-[1.4] shadow-none ring-0 outline-none focus:ring-0 focus-visible:ring-0"
+              className="max-h-[110px] min-h-10 flex-1 resize-none border-0 bg-transparent py-[10px] pr-1 pl-4 text-sm leading-[1.4] shadow-none ring-0 outline-none focus:ring-0 focus-visible:ring-0"
             />
             <Button
               isIconOnly
@@ -724,7 +730,7 @@ function ChatGuide() {
               aria-label="Send"
               isDisabled={v.busy || !v.draft.trim()}
               onPress={() => void send()}
-              className="m-[5px] size-8 min-w-8 flex-none rounded-full"
+              className="m-1 size-8 min-w-8 flex-none rounded-full"
             >
               <Icon name="send" size={16} />
             </Button>

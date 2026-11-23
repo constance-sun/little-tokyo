@@ -205,7 +205,7 @@ export default function MapView({ active, plan: embedPlan, onClose, onDetails }:
     setPv(s);
     drawPlan(s);
     setMode({ kind: "plan" });
-    setSheet(2);
+    setSheet(embed ? 1 : 2); // the full-page plan map opens at a peek so the route has room
     if (bodyRef.current) bodyRef.current.scrollTop = 0;
     engRef.current?.fitPoints(legs.flatMap((l) => (l.r ? l.r.pts : [])));
   }
@@ -445,7 +445,7 @@ export default function MapView({ active, plan: embedPlan, onClose, onDetails }:
 
       {/* top: search or directions, then chips */}
       <div className={cx("pointer-events-none absolute top-2.5 left-2.5 z-10 flex flex-col gap-2 *:pointer-events-auto", embed ? "right-14" : "right-2.5")} style={{ visibility: topHidden ? "hidden" : "visible" }}>
-        {!dir ? (
+        {embed ? null : !dir ? (
           <div className="relative">
             <SearchField
               aria-label="Search places"
@@ -457,7 +457,7 @@ export default function MapView({ active, plan: embedPlan, onClose, onDetails }:
               onClear={() => setResOpen(false)}
               className="w-full"
             >
-              <SearchField.Group className="bg-surface h-12 rounded-full px-1.5 shadow-[var(--overlay-shadow)]">
+              <SearchField.Group className="bg-surface h-10 rounded-full px-1.5 shadow-[var(--overlay-shadow)]">
                 <SearchField.SearchIcon className="ml-2" />
                 <SearchField.Input placeholder="Search Little Tokyo" autoComplete="off" className="text-sm" />
                 <SearchField.ClearButton />
@@ -512,8 +512,9 @@ export default function MapView({ active, plan: embedPlan, onClose, onDetails }:
             <DirSelect label="Destination" value={dir.to} me={me} groups={dirOptions} onChange={(v) => { setDir({ ...dir, to: v }); runDirections(dir.from, v); }} />
           </Surface>
         )}
-        {!dir && <Chips filter={filter} onPick={pickChip} front={chipsMode ? ["park", "wc"] : []} />}
-        {!dir && SUBS[filter as Cat] && (
+        {/* the chat Guide's full-page plan map has no filter chips */}
+        {!dir && !embed && <Chips filter={filter} onPick={pickChip} front={chipsMode ? ["park", "wc"] : []} />}
+        {!dir && !embed && SUBS[filter as Cat] && (
           <div className="-mt-1">
             <TypeFilter filter={filter as Cat} subs={subs} waitF={waitF} open={fpOpen} setOpen={setFpOpen} setSubs={setSubs} setWaitF={setWaitF} />
           </div>

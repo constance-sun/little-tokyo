@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Alert, Button, Chip, Table, Tabs } from "@heroui/react";
-import { ListRow } from "@/components/common";
+import { ListRow, PlaceThumb } from "@/components/common";
 import { OwnerBox } from "@/views/account/OwnerBox";
 import { CATS, METRO_DESC, PARKING, PLACES, POI, WCS } from "@/lib/data";
 import { DAYN, DAYS, hoursText, laNow, openState } from "@/lib/hours";
@@ -538,9 +538,12 @@ export function PlanSheet({
     const i = legIndexFrom(p);
     const on = active >= 0 && legs[active].a === p;
     return (
-      <div className="grid grid-cols-[30px_1fr_auto] items-center gap-2.5 py-2">
+      <div className="grid grid-cols-[30px_52px_1fr_auto] items-center gap-2.5 py-2">
         <button type="button" onClick={() => focusLeg(i)} className={cx("size-[30px] rounded-full p-0 text-sm font-bold text-white shadow-[var(--surface-shadow)]", num === "P" ? "bg-park" : "bg-accent")}>
           {num}
+        </button>
+        <button type="button" onClick={() => details(p)} aria-label={`${p.name} details`} className="p-0">
+          <PlaceThumb p={p} icon={20} className="size-[52px] rounded-[14px]" />
         </button>
         <button type="button" onClick={() => focusLeg(i)} className="flex min-w-0 flex-col bg-transparent p-0 text-left">
           <b className={cx("text-sm font-semibold", on && "text-accent")}>{p.name}</b>

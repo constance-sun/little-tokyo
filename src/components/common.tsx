@@ -23,6 +23,16 @@ export function CatDot({ p, size = 28, icon = 15, className }: { p: Place; size?
   );
 }
 
+/** A place's first photo, cropped to fill; places without one get their category colour and icon. Size it with className. */
+export function PlaceThumb({ p, className, icon = 22 }: { p: Place; className?: string; icon?: number }) {
+  const ph = p.photos[0];
+  return (
+    <span className={cx("grid shrink-0 place-items-center overflow-hidden", className)} style={ph ? undefined : { background: CATS[p.cat].color }}>
+      {ph ? <img src={ph.src} alt="" loading="lazy" className="size-full object-cover" /> : <Icon name={p.glyph} size={icon} stroke="#fff" />}
+    </span>
+  );
+}
+
 /** Page wrapper: a scroll container with the standard padding. */
 export function Page({ children, className }: { children: ReactNode; className?: string }) {
   return (
