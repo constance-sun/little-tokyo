@@ -84,7 +84,7 @@ function PhotoStrip({ p }: { p: Place }) {
   return (
     <div className="no-scrollbar flex snap-x snap-mandatory scroll-px-3.5 gap-2 overflow-x-auto px-3.5">
       {ph.map((x, i) => (
-        <figure key={i} className={cx("bg-surface-secondary relative m-0 h-[160px] flex-none snap-start overflow-hidden rounded-[22px]", ph.length === 1 ? "w-full" : "w-[236px]")}>
+        <figure key={i} className={cx("bg-surface-secondary relative m-0 h-[160px] flex-none snap-start overflow-hidden rounded-[22px]", ph.length === 1 ? "w-full" : "w-[86%]")}>
           <img src={x.src} alt={x.caption || x.subject || p.name} loading="lazy" className="block size-full object-cover" />
           <figcaption className="absolute inset-x-0 bottom-0 flex flex-col gap-px bg-gradient-to-b from-transparent to-black/70 px-3 pt-6 pb-2 text-xs leading-[1.3] text-white">
             {x.caption && <b className="text-xs">{x.caption}</b>}

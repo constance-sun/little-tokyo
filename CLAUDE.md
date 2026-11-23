@@ -202,7 +202,7 @@ Conventions:
 
 - **Behaviour.** The sheet has a drag handle and snaps to four heights: closed, peek (about 250px), half (60%) and full. Tapping the handle toggles between full and half, and dragging it below about 60% of peek closes the sheet. The search bar hides when the sheet is full.
 - **Header:**
-  - A horizontal photo strip with scroll-snap. Each photo carries a caption and an author · license credit with a link. Places with no photo show a category-coloured placeholder with the icon and "Photo coming soon".
+  - A horizontal photo strip with scroll-snap. With more than one photo each slide is 86% wide, so the next one peeks in. Each photo carries a caption and an author · license credit with a link. Places with no photo show a category-coloured placeholder with the icon and "Photo coming soon".
   - The name, then one plain subtitle line: type · price, with "★ Legacy since YYYY" in gold.
   - Then a short list of facts, one per row with a muted icon (no chips): 🕒 the open state, live in LA time ("**Open** · Closes 9 PM", "**Closed** · Opens tomorrow 11 AM", "Hours not confirmed"; only the first word is coloured green/red); ⏳ for restaurants, the wait (live ones get a pulsing green dot); 👥 "N min walk from the Metro/you".
 - **Status banners:**
@@ -397,7 +397,7 @@ The original ran inside a host that exposed `window.claude.use(name)`. `src/lib/
 | `research.json` | per numbered place (keys "1"–"66", "metro"): status (49 open, 10 unknown, 1 temp closed, 1 moved, 6 closed), hours `{mon:"11:00-21:00", …}`, story, parking, sources… plus `park` rates for garages 31 and 34 |
 | `logistics.json` | `parking[]` (rates, rateList, ratesShort, entrance, validation, hours, kind), `restrooms[]`, `mapP` (extra parking points), `meters` note |
 | `waits.json` | 34 researched restaurant waits (16 with min/max minutes): peak, off-peak tip, reservations, basis, sources, confidence |
-| `photos.json` | 75 Wikimedia/Flickr photos for 58 places, with author, license and source |
+| `photos.json` | 106 Wikimedia/Flickr photos for 58 places, with author, license and source. Most are files in `public/images/` (`img` key); 31 extra Wikimedia Commons photos (Nov 2026, chosen by hand from the Little Tokyo categories) are linked directly to their Commons thumbnails (`url`). Up to 8 per place. |
 | `events.json` | 29 events (see section 4) |
 | `images.json` | image key → `/images/<key>.jpg` (files in `public/images/`) |
 

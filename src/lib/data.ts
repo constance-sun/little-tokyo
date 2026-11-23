@@ -31,7 +31,8 @@ const WAITS = WAITS_JSON as unknown as Record<string, Wait>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const LOGI = LOGI_JSON as any;
 
-for (const k in PHOTOS) PHOTOS[k].forEach((x) => { if (x.img) x.src = IMGS[x.img]; });
+// photos are either extracted files (`img` key → /images/…) or Wikimedia Commons thumbnails linked directly (`url`)
+for (const k in PHOTOS) PHOTOS[k].forEach((x) => { x.src = x.img ? IMGS[x.img] : x.url; });
 export const EVENTS = EVENTS_JSON as unknown as EventItem[];
 EVENTS.forEach((e) => { if (e.photo && e.photo.img) e.photo.src = IMGS[e.photo.img]; });
 export const METRO_DESC: string | undefined = R.metro?.description;

@@ -5,6 +5,8 @@ export type Hours = Partial<Record<DayKey, string>>;
 
 export interface Photo {
   img?: string;
+  /** a Wikimedia Commons thumbnail URL, for photos not stored in public/images */
+  url?: string;
   src?: string;
   author?: string;
   license?: string;
