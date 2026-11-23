@@ -49,8 +49,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           for i in $(seq 1 60); do
-            n=$(gh run list -R "${{ github.repository }}" --workflow "pages build and deployment" --commit "${{ github.sha }}" \
-                  --json status --jq '[.[] | select(.status != "completed")] | length' 2>/dev/null || echo 0)
+            n=$(gh run list -R "${{ github.repository }}" --commit "${{ github.sha }}" --json workflowName,status \
+                  --jq '[.[] | select(.workflowName == "pages-build-deployment" and .status != "completed")] | length')
             [ "$n" = "0" ] && exit 0
             sleep 5
           done
