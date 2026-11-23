@@ -1,20 +1,70 @@
 @import "tailwindcss";
 @import "@heroui/styles";
 
+/* Gen Interface JP: 400–800 (800 also serves 900) */
+@font-face {
+  font-family: "Gen Interface JP";
+  src: url("/fonts/GenInterfaceJP-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Gen Interface JP";
+  src: url("/fonts/GenInterfaceJP-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Gen Interface JP";
+  src: url("/fonts/GenInterfaceJP-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Gen Interface JP";
+  src: url("/fonts/GenInterfaceJP-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Gen Interface JP";
+  src: url("/fonts/GenInterfaceJP-ExtraBold.woff2") format("woff2");
+  font-weight: 800 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 /* ======================================================================
    Theme: HeroUI v3 default theme, branded for Little Tokyo.
-   - accent = the Little Tokyo red; rounder radius; Archivo everywhere.
+   - accent = the Little Tokyo red; rounder radius; Gen Interface JP everywhere
+     (self-hosted in public/fonts, trimmed to the characters the site uses; SIL OFL 1.1).
    - HeroUI tokens (bg-background, bg-surface, bg-surface-secondary, text-muted,
      bg-accent, bg-accent-soft, text-accent, bg-default, border-separator…) drive the UI.
    - --c-* / --t-* / map tokens drive pins, buildings and streets (not HeroUI).
    ====================================================================== */
 @theme inline {
-  --font-sans: "Archivo", system-ui, -apple-system, sans-serif;
-  --font-display: "Archivo", system-ui, sans-serif;
-  --font-logo: "Archivo Black", "Archivo", sans-serif;
-  --font-jp: "Zen Kaku Gothic New", "Hiragino Sans", sans-serif;
+  /* type scale: 12 caption · 14 body and button labels · 16 · 20 · 24 · 32 · 40 · 48 · 80 */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 2rem;
+  --text-3xl--line-height: 1.1;
+  --text-4xl: 2.5rem;
+  --text-4xl--line-height: 1.05;
+  --text-5xl: 3rem;
+  --text-7xl: 5rem;
+  --font-sans: "Gen Interface JP", "Hiragino Sans", system-ui, -apple-system, sans-serif;
+  --font-display: "Gen Interface JP", "Hiragino Sans", system-ui, sans-serif;
+  --font-logo: "Archivo Black", "Gen Interface JP", sans-serif;
+  --font-jp: "Gen Interface JP", "Hiragino Sans", sans-serif;
   --color-gold: var(--gold);
   --color-gold-soft: var(--gold-soft);
   --color-eat: var(--c-eat);
@@ -38,9 +88,9 @@
   --glass: color-mix(in oklab, var(--surface) 94%, transparent);
 
   /* categories */
-  --c-eat: #d2452b; --c-shop: #b8336a; --c-explore: #1f7f73; --c-park: #2f5fd0; --c-wc: #566f88; --c-metro: #c01f26;
+  --c-eat: #d2452b; --c-shop: #1479c9; --c-explore: #2e8a3e; --c-park: #2f5fd0; --c-wc: #566f88; --c-metro: #c01f26;
   /* map label colours (darker versions of the category colours) */
-  --t-eat: #b23a1e; --t-shop: #9a2758; --t-explore: #16675d; --t-park: #2a55b8; --t-wc: #4a6178; --t-metro: #b01c22;
+  --t-eat: #b23a1e; --t-shop: #0f62a6; --t-explore: #23702f; --t-park: #2a55b8; --t-wc: #4a6178; --t-metro: #b01c22;
   --halo: #ffffff;
   /* map surfaces */
   --ground: #f1f1ef; --street: #ffffff; --casing: #dadada; --plaza: #f4ebe1; --plaza-walk: #f6efe7; --green: #e0e8d8;
@@ -54,8 +104,8 @@
   --gold: #d8ae55;
   --gold-soft: rgba(216, 174, 85, 0.14);
 
-  --c-eat: #ef6a46; --c-shop: #e0558c; --c-explore: #3fb3a3; --c-park: #5b8cff; --c-wc: #9db4cc; --c-metro: #e0332b;
-  --t-eat: #ff8a62; --t-shop: #f27aa8; --t-explore: #5fd0bf; --t-park: #8bb0ff; --t-wc: #b8cbe0; --t-metro: #ff6a5e;
+  --c-eat: #ef6a46; --c-shop: #4aa6ec; --c-explore: #52b65f; --c-park: #5b8cff; --c-wc: #9db4cc; --c-metro: #e0332b;
+  --t-eat: #ff8a62; --t-shop: #7cc0f5; --t-explore: #78d083; --t-park: #8bb0ff; --t-wc: #b8cbe0; --t-metro: #ff6a5e;
   --halo: rgba(0, 0, 0, 0.75);
   --ground: #141414; --street: #2c2c2c; --casing: #0a0a0a; --plaza: #2a221b; --plaza-walk: #362a20; --green: #1e271d;
   --lot: #1e1d1b; --lot-edge: #2c2a27; --label: #a8a8a8; --bldg: #262626; --bldg-edge: #393939; --bldg-off: #1b1b1b;
@@ -118,5 +168,42 @@
   padding: 0.5rem;
 }
 .select__popover [role="option"] {
-  border-radius: calc(var(--radius) * 1.25);
+  border-radius: 14px;
+}
+
+/* Corner radii, matched to the Figma file (Temp → "lil tokyo"):
+   cards 28, floating panels 24, toasts 20, checkboxes 5.
+   HeroUI's defaults (32 / 30 / 9) read a touch too round at phone size. */
+@layer components {
+  /* type scale: button labels and form text are 14 at every size (HeroUI makes lg buttons and phone inputs 16) */
+  .button--lg,
+  .toggle-button--lg,
+  .input,
+  .textarea,
+  .select__value,
+  .search-field__input {
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+  }
+  /* only primary buttons are red; secondary (grey fill), tertiary, ghost and outline use black text (Figma "Button") */
+  .button--secondary,
+  .button--tertiary,
+  .button--ghost,
+  .button--outline {
+    --button-fg: var(--foreground);
+    color: var(--foreground);
+  }
+  .card {
+    border-radius: 28px;
+  }
+  .popover,
+  .select__popover {
+    border-radius: 24px;
+  }
+  .toast {
+    border-radius: 20px;
+  }
+  .checkbox__control {
+    border-radius: 5px;
+  }
 }

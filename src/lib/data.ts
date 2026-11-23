@@ -112,7 +112,7 @@ const EXTRA: Record<string, any> = { // two famous spots that are not numbered o
 /* ======================================================================
    Merge base list + research + logistics into PLACES
    ====================================================================== */
-type Raw = Omit<Place, "glyph" | "sub"> & { glyph?: string; sub?: string | null };
+type Raw = Omit<Place, "glyph" | "glyphKind" | "sub"> & { glyph?: string; sub?: string | null };
 const raw: Raw[] = [];
 for (const [n, id, name, cat, tags] of BASE) {
   const r = R[String(n)] || EXTRA[id] || {};
@@ -170,9 +170,14 @@ function subOf(p: Raw & { glyph: string }) {
   return null;
 }
 
+/** The pin icon. Food places all share the fork and spoon, except coffee/matcha cafés (coffee cup);
+ *  the finer kind (ramen, sushi, bar…) still decides the Filter panel's sub-type. */
+const pinGlyph = (r: Raw, kind: string) =>
+  r.cat !== "eat" ? kind : r.tags.includes("coffee") || /coffee|matcha|espresso/i.test(r.type || "") ? "cafe" : "dining";
+
 export const PLACES: Place[] = raw.map((r) => {
-  const glyph = glyphFor(r);
-  return { ...r, glyph, sub: subOf({ ...r, glyph }) } as Place;
+  const kind = glyphFor(r);
+  return { ...r, glyph: pinGlyph(r, kind), glyphKind: kind, sub: subOf({ ...r, glyph: kind }) } as Place;
 });
 export const BY: Record<string, Place> = Object.fromEntries(PLACES.map((p) => [p.id, p]));
 export const LEGACY = PLACES.filter((p) => p.legacy);

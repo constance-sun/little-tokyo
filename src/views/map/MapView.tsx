@@ -30,7 +30,11 @@ const heightsFor = (H: number) => [0, Math.min(250, H * 0.42), Math.round(H * 0.
 const evHeightsFor = (H: number) => [0, Math.min(156, H * 0.3), Math.round(H * 0.6), H - 8];
 const DIR_GROUPS: [Cat, string][] = [["eat", "Eat"], ["shop", "Shop"], ["explore", "Explore"], ["park", "Parking"], ["wc", "Restrooms"], ["metro", "Transit"]];
 
-export default function MapView({ active }: { active: boolean }) {
+/** `plan` (+ onClose/onDetails) = embedded mode: a second map inside the chat Guide's full-page plan view.
+ *  It opens straight onto that plan, ignores map commands from other views, sends place taps to `onDetails`
+ *  instead of opening the place sheet (so the plan stays drawn), and "Close plan" calls `onClose`. */
+export default function MapView({ active, plan: embedPlan, onClose, onDetails }: { active: boolean; plan?: Plan; onClose?: () => void; onDetails?: (p: Place) => void }) {
+  const embed = !!embedPlan;
   const me = useApp((s) => s.me);
   const live = useApp((s) => s.live);
   const mapCmd = useApp((s) => s.mapCmd);
@@ -52,6 +56,7 @@ export default function MapView({ active }: { active: boolean }) {
   const evModeRef = useRef(evMode);
   evModeRef.current = evMode;
   const pickRef = useRef(false);
+  const [picking, setPicking] = useState(false); // "Set where I am" is waiting for a tap: the button turns red
 
   const [H, setH] = useState(600);
   const [filter, setFilter] = useState("all");
@@ -108,6 +113,10 @@ export default function MapView({ active }: { active: boolean }) {
     engRef.current?.clearMarks();
   }
   function openPlace(p: Place) {
+    if (onDetails) {
+      onDetails(p);
+      return;
+    }
     clearPlan();
     setSelected(p);
     setRouteTarget(null);
@@ -221,8 +230,8 @@ export default function MapView({ active }: { active: boolean }) {
   }
 
   const actions: SheetActions = { openPlace, startDirections, showNearest, showRouteBetween };
-  const actRef = useRef({ ...actions, closeSheet, focusLeg, showPlan, selected, setEv, sheetH });
-  actRef.current = { ...actions, closeSheet, focusLeg, showPlan, selected, setEv, sheetH };
+  const actRef = useRef({ ...actions, closeSheet, focusLeg, showPlan, selected, setEv, sheetH, setSheet, embed });
+  actRef.current = { ...actions, closeSheet, focusLeg, showPlan, selected, setEv, sheetH, setSheet, embed };
 
   /* ---------------- engine lifecycle ---------------- */
   useLayoutEffect(() => {
@@ -234,12 +243,17 @@ export default function MapView({ active }: { active: boolean }) {
         onMapTap: (x, y) => {
           if (!pickRef.current) return;
           pickRef.current = false;
+          setPicking(false);
           setMe(x, y);
           return "picked";
         },
         onEmptyTap: () => {
           // like Google Maps: a tap on the map closes the detail sheet, or else lowers the events sheet
-          if (sheetStateRef.current) actRef.current.closeSheet();
+          // (embedded plan view: lower the plan sheet to a peek instead of closing it)
+          if (sheetStateRef.current) {
+            if (actRef.current.embed) actRef.current.setSheet(1);
+            else actRef.current.closeSheet();
+          }
           else if (evStateRef.current > 1) actRef.current.setEv(1);
         },
         sheetH: () => actRef.current.sheetH(),
@@ -276,6 +290,16 @@ export default function MapView({ active }: { active: boolean }) {
     engRef.current?.setSatellite(satellite);
   }, [satellite]);
 
+  const gmaps = useFeature("gmaps");
+  useEffect(() => {
+    engRef.current?.setGmaps(gmaps);
+  }, [gmaps]);
+
+  const pinSpace = useApp((s) => s.pinSpace);
+  useEffect(() => {
+    engRef.current?.setPinSpace(pinSpace);
+  }, [pinSpace]);
+
   // switching iterations shows or hides the events sheet
   useEffect(() => {
     setEv(evMode ? Math.max(1, evStateRef.current) : 0);
@@ -296,14 +320,17 @@ export default function MapView({ active }: { active: boolean }) {
       setH(eng.H);
       if (sheetRef.current) sheetRef.current.style.height = heightsFor(eng.H)[sheetStateRef.current] + "px";
       if (evRef.current) evRef.current.style.height = (evModeRef.current ? evHeightsFor(eng.H)[evStateRef.current] : 0) + "px";
-      if (!getState().mapCmd) eng.intro();
+      if (embedPlan) {
+        eng.introDone = true;
+        actRef.current.showPlan(embedPlan);
+      } else if (!getState().mapCmd) eng.intro();
     });
     return () => cancelAnimationFrame(id);
   }, [active]);
 
   // commands from other views: open a place, or show a day plan
   useEffect(() => {
-    if (!active || !mapCmd) return;
+    if (!active || !mapCmd || embed) return;
     const id = requestAnimationFrame(() => {
       const eng = engRef.current;
       if (!eng) return;
@@ -314,6 +341,13 @@ export default function MapView({ active }: { active: boolean }) {
         if (p) {
           setDir(null);
           actRef.current.openPlace(p);
+        }
+      } else if (mapCmd.kind === "dir" || mapCmd.kind === "near") {
+        const p = BY[mapCmd.id];
+        if (p) {
+          setDir(null);
+          if (mapCmd.kind === "dir") actRef.current.startDirections(p);
+          else actRef.current.showNearest(p, mapCmd.near);
         }
       } else actRef.current.showPlan(mapCmd.plan);
       consumeMapCmd();
@@ -376,8 +410,9 @@ export default function MapView({ active }: { active: boolean }) {
     setFpOpen(false);
     store.set("lt-filter", f);
     store.set("lt-subs", []);
-    if (f === "park") toast("Tap a garage for rates.");
-    if (f === "wc") toast("Tap one for access.");
+    // iteration 4 drops these hints: the red chip and the pins that appear say enough
+    if (!chipsMode && f === "park") toast("Tap a garage for rates.");
+    if (!chipsMode && f === "wc") toast("Tap one for access.");
     if (k === "open") toast(`${PLACES.filter((p) => POI(p) && openState(p).k === "y").length} places open right now`);
   }
   const setSubs = (s: Set<string>) => {
@@ -409,7 +444,7 @@ export default function MapView({ active }: { active: boolean }) {
       </div>
 
       {/* top: search or directions, then chips */}
-      <div className="pointer-events-none absolute inset-x-2.5 top-2.5 z-10 flex flex-col gap-2 *:pointer-events-auto" style={{ visibility: topHidden ? "hidden" : "visible" }}>
+      <div className={cx("pointer-events-none absolute top-2.5 left-2.5 z-10 flex flex-col gap-2 *:pointer-events-auto", embed ? "right-14" : "right-2.5")} style={{ visibility: topHidden ? "hidden" : "visible" }}>
         {!dir ? (
           <div className="relative">
             <SearchField
@@ -424,18 +459,18 @@ export default function MapView({ active }: { active: boolean }) {
             >
               <SearchField.Group className="bg-surface h-12 rounded-full px-1.5 shadow-[var(--overlay-shadow)]">
                 <SearchField.SearchIcon className="ml-2" />
-                <SearchField.Input placeholder="Search Little Tokyo" autoComplete="off" className="text-base" />
+                <SearchField.Input placeholder="Search Little Tokyo" autoComplete="off" className="text-sm" />
                 <SearchField.ClearButton />
               </SearchField.Group>
             </SearchField>
             {resOpen && (
-              <Surface className="mt-2 max-h-[330px] overflow-y-auto rounded-3xl p-1.5 shadow-[var(--overlay-shadow)]">
+              <Surface className="mt-2 max-h-[330px] overflow-y-auto rounded-[24px] p-1.5 shadow-[var(--overlay-shadow)]">
                 {hits.length ? (
                   hits.map((p) => (
                     <button
                       key={p.id}
                       type="button"
-                      className="hover:bg-default/70 flex w-full items-center gap-3 rounded-2xl px-2.5 py-2 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus)]"
+                      className="hover:bg-default/70 flex w-full items-center gap-3 rounded-[18px] px-2.5 py-2 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus)]"
                       onClick={() => {
                         setQ(p.name);
                         setResOpen(false);
@@ -446,7 +481,7 @@ export default function MapView({ active }: { active: boolean }) {
                       <CatDot p={p} size={32} icon={15} />
                       <span className="min-w-0">
                         <b className="block truncate text-sm font-semibold">{p.name}</b>
-                        <small className="text-muted block truncate text-[12.5px]">
+                        <small className="text-muted block truncate text-sm">
                           {[p.type || CATS[p.cat].label, p.legacy ? "★ Legacy" : null, POI(p) ? openState(p).t : null].filter(Boolean).join(" · ")}
                         </small>
                       </span>
@@ -459,7 +494,7 @@ export default function MapView({ active }: { active: boolean }) {
             )}
           </div>
         ) : (
-          <Surface className="grid grid-cols-[18px_1fr_auto] items-center gap-x-2.5 gap-y-1.5 rounded-3xl py-2.5 pr-2 pl-3.5 shadow-[var(--overlay-shadow)]">
+          <Surface className="grid grid-cols-[18px_1fr_auto] items-center gap-x-2.5 gap-y-1.5 rounded-[24px] py-2.5 pr-2 pl-3.5 shadow-[var(--overlay-shadow)]">
             <div className="row-span-2 flex flex-col items-center gap-[3px]">
               <i className="border-muted size-[10px] rounded-full border-2" />
               <b className="h-3.5 w-0.5" style={{ background: "repeating-linear-gradient(var(--muted) 0 2px,transparent 2px 4px)" }} />
@@ -487,7 +522,14 @@ export default function MapView({ active }: { active: boolean }) {
 
       {/* floating buttons */}
       <div className="mapfloat absolute right-2.5 z-[9] flex flex-col gap-2" style={{ bottom: fabBottom + 26, visibility: sheetState >= 2 || evState >= 2 ? "hidden" : "visible" }}>
-        <Button isIconOnly variant="tertiary" className={fabCls} aria-label="Set where I am" onPress={() => { pickRef.current = true; toast("Tap the map where you are"); }}>
+        <Button
+          isIconOnly
+          variant="tertiary"
+          className={cx(fabCls, picking && "bg-accent! text-accent-foreground!")}
+          aria-label={picking ? "Tap the map where you are (tap again to cancel)" : "Set where I am"}
+          aria-pressed={picking}
+          onPress={() => { pickRef.current = !pickRef.current; setPicking(pickRef.current); }}
+        >
           <Icon name="pin" size={20} />
         </Button>
         {!chipsMode && (
@@ -540,12 +582,13 @@ export default function MapView({ active }: { active: boolean }) {
         href="https://www.openstreetmap.org/copyright"
         target="_blank"
         rel="noopener"
-        className="mapfloat text-muted absolute right-1.5 z-[8] rounded-full bg-[var(--glass)] px-1.5 py-px text-[9.5px] no-underline"
+        className={cx("mapfloat text-muted absolute right-1.5 z-[8] rounded-full bg-[var(--glass)] px-1.5 py-px text-[9.5px] no-underline", chipsMode && "hidden")}
         style={{ bottom: fabBottom + 4 }}
       >
         {satellite ? `${IMAGERY_CREDIT} · © OpenStreetMap` : "© OpenStreetMap"}
       </a>
-      <div className="mapfloat text-muted pointer-events-none absolute left-3 z-[8] flex flex-col gap-0.5 text-[10px] font-medium" style={{ bottom: fabBottom + 14 }}>
+      {/* iterations 4+ hide the credit and scale bar for now (the engine still sizes the scale bar) */}
+      <div className={cx("mapfloat text-muted pointer-events-none absolute left-3 z-[8] flex flex-col gap-0.5 text-[10px] font-medium", chipsMode && "hidden")} style={{ bottom: fabBottom + 14 }}>
         <span ref={scaleTxtRef}>100 m</span>
         <i ref={scaleBarRef} className="block h-[5px] border-[1.5px] border-t-0 border-current" style={{ width: 60 }} />
       </div>
@@ -554,7 +597,7 @@ export default function MapView({ active }: { active: boolean }) {
       {evMode && (
         <div
           ref={evRef}
-          className="mapsheet bg-overlay absolute inset-x-0 bottom-0 z-[19] flex flex-col rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,.14)]"
+          className="mapsheet bg-overlay absolute inset-x-0 bottom-0 z-[19] flex flex-col rounded-t-[28px] shadow-[0_-8px_30px_rgba(0,0,0,.14)]"
           style={{ height: 0 }}
           aria-label="Events"
         >
@@ -574,12 +617,29 @@ export default function MapView({ active }: { active: boolean }) {
       {/* detail sheet (place, route, plan, event): slides over the events sheet */}
       <div
         ref={sheetRef}
-        className="mapsheet bg-overlay absolute inset-x-0 bottom-0 z-20 flex flex-col rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,.14)]"
+        className="mapsheet bg-overlay absolute inset-x-0 bottom-0 z-20 flex flex-col rounded-t-[28px] shadow-[0_-8px_30px_rgba(0,0,0,.14)]"
         style={{ height: 0 }}
       >
-        <div className="flex flex-none cursor-grab touch-none justify-center pt-2 pb-1" {...sheetGrab} onPointerCancel={sheetGrab.onPointerUp}>
+        <div
+          className={cx("flex flex-none cursor-grab touch-none justify-center pt-2 pb-1", mode?.kind === "place" && selected && "h-12")}
+          {...sheetGrab}
+          onPointerCancel={sheetGrab.onPointerUp}
+        >
           <i className="bg-default h-[5px] w-10 rounded-full" />
         </div>
+        {/* sits in the taller handle strip, above the photos */}
+        {mode?.kind === "place" && selected && (
+          <Button
+            isIconOnly
+            size="sm"
+            variant="secondary"
+            aria-label={`Close ${selected.name}`}
+            onPress={closeSheet}
+            className="bg-default text-foreground absolute top-3 right-4 z-10 size-7 min-w-7 rounded-full"
+          >
+            <Icon name="close" size={14} className="m-0! size-3.5!" />
+          </Button>
+        )}
         <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {mode?.kind === "place" && selected && <PlaceSheet p={selected} tab={tab} setTab={setTab} actions={actions} />}
           {mode?.kind === "event" && <EventDetailBody e={mode.e} onClose={closeSheet} />}
@@ -604,8 +664,9 @@ export default function MapView({ active }: { active: boolean }) {
               me={me}
               focusLeg={focusLeg}
               wholeRoute={wholeRoute}
-              close={closeSheet}
+              close={embed && onClose ? onClose : closeSheet}
               details={(p) => {
+                if (onDetails) return onDetails(p);
                 clearPlan();
                 openPlace(p);
               }}
@@ -622,7 +683,7 @@ function DirSelect({
 }: { label: string; value: string; me: Me; groups: [string, Place[]][]; onChange: (v: string) => void }) {
   return (
     <Select aria-label={label} value={value} onChange={(k) => k != null && onChange(String(k))} className="w-full min-w-0">
-      <Select.Trigger className="bg-field h-9 min-h-9 rounded-xl text-[15px]">
+      <Select.Trigger className="bg-field h-9 min-h-9 rounded-full text-sm">
         <Select.Value className="truncate" />
         <Select.Indicator />
       </Select.Trigger>

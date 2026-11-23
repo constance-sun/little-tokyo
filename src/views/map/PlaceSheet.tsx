@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Alert, Button, Chip, Table, Tabs } from "@heroui/react";
-import { LegacyChip, ListRow } from "@/components/common";
+import { ListRow } from "@/components/common";
 import { OwnerBox } from "@/views/account/OwnerBox";
 import { CATS, METRO_DESC, PARKING, PLACES, POI, WCS } from "@/lib/data";
 import { DAYN, DAYS, hoursText, laNow, openState } from "@/lib/hours";
@@ -38,7 +38,7 @@ const A = ({ href, children }: { href: string; children: ReactNode }) => (
 /* ---------------- shared bits ---------------- */
 function IRow({ ic, children, right }: { ic: string; children: ReactNode; right?: ReactNode }) {
   return (
-    <div className="border-separator grid grid-cols-[32px_1fr_auto] items-start gap-3 border-b py-3 text-sm last:border-b-0 [&_small]:text-muted [&_small]:block [&_small]:text-[12.5px]">
+    <div className="border-separator grid grid-cols-[32px_1fr_auto] items-start gap-3 border-b py-3 text-sm last:border-b-0 [&_small]:text-muted [&_small]:block [&_small]:text-sm">
       <span className="bg-accent-soft text-accent grid size-8 place-items-center rounded-full">
         <Icon name={ic} size={16} />
       </span>
@@ -71,7 +71,7 @@ function PhotoStrip({ p }: { p: Place }) {
   if (!ph.length)
     return (
       <div className="px-3.5">
-        <figure className="bg-surface-secondary relative m-0 h-[160px] w-full overflow-hidden rounded-2xl">
+        <figure className="bg-surface-secondary relative m-0 h-[160px] w-full overflow-hidden rounded-[22px]">
           <div className="text-muted flex size-full flex-col items-center justify-center gap-2 text-xs font-medium">
             <span className="grid size-16 place-items-center rounded-full" style={{ background: CATS[p.cat].color }}>
               <Icon name={p.glyph} size={36} stroke="#fff" />
@@ -84,9 +84,9 @@ function PhotoStrip({ p }: { p: Place }) {
   return (
     <div className="no-scrollbar flex snap-x snap-mandatory scroll-px-3.5 gap-2 overflow-x-auto px-3.5">
       {ph.map((x, i) => (
-        <figure key={i} className={cx("bg-surface-secondary relative m-0 h-[160px] flex-none snap-start overflow-hidden rounded-2xl", ph.length === 1 ? "w-full" : "w-[236px]")}>
+        <figure key={i} className={cx("bg-surface-secondary relative m-0 h-[160px] flex-none snap-start overflow-hidden rounded-[22px]", ph.length === 1 ? "w-full" : "w-[236px]")}>
           <img src={x.src} alt={x.caption || x.subject || p.name} loading="lazy" className="block size-full object-cover" />
-          <figcaption className="absolute inset-x-0 bottom-0 flex flex-col gap-px bg-gradient-to-b from-transparent to-black/70 px-3 pt-6 pb-2 text-[10px] leading-[1.3] text-white">
+          <figcaption className="absolute inset-x-0 bottom-0 flex flex-col gap-px bg-gradient-to-b from-transparent to-black/70 px-3 pt-6 pb-2 text-xs leading-[1.3] text-white">
             {x.caption && <b className="text-xs">{x.caption}</b>}
             <span>
               {(x.author || "Wikimedia Commons") + " · "}
@@ -120,6 +120,16 @@ function Act({ label, ic, onClick, primary, on }: { label: string; ic: string; o
   );
 }
 
+/** One fact under a place's name: a muted icon and a line of text. */
+function Fact({ ic, children }: { ic: string; children: ReactNode }) {
+  return (
+    <li className="flex items-start gap-2.5">
+      <Icon name={ic} size={16} className="text-muted mt-0.5 flex-none" />
+      <span className="min-w-0">{children}</span>
+    </li>
+  );
+}
+
 /* ---------------- the place sheet ---------------- */
 export function PlaceSheet({ p, tab, setTab, actions }: { p: Place; tab: string; setTab: (t: string) => void; actions: SheetActions }) {
   const me = useApp((s) => s.me);
@@ -134,30 +144,36 @@ export function PlaceSheet({ p, tab, setTab, actions }: { p: Place; tab: string;
     <>
       <PhotoStrip p={p} />
       <div className="px-4 pt-3">
-        <h2 className="font-display m-0 text-[24px] leading-[1.15] font-extrabold tracking-[-0.03em]">{p.name}</h2>
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <Chip size="sm" variant="secondary" className="gap-1.5 pl-1">
-            <span className="grid size-[18px] place-items-center rounded-full" style={{ background: CATS[p.cat].color }}>
-              <Icon name={p.glyph} size={11} stroke="#fff" />
-            </span>
-            {[p.type || CATS[p.cat].label, p.price].filter(Boolean).join(" · ")}
-          </Chip>
-          {p.legacy && <LegacyChip since={p.since} />}
+        <h2 className="font-display m-0 text-2xl leading-[1.15] font-extrabold tracking-[-0.03em]">{p.name}</h2>
+        {/* one plain subtitle line, then a short list of facts, each on its own row with an icon */}
+        <p className="text-muted m-0 mt-1 text-sm">
+          {[p.type || CATS[p.cat].label, p.price].filter(Boolean).join(" · ")}
+          {p.legacy && <span className="text-gold font-semibold"> · ★ Legacy{p.since ? " since " + p.since : ""}</span>}
+        </p>
+        <ul className="m-0 mt-3 flex list-none flex-col gap-2 p-0 text-sm">
           {st && (
-            <Chip size="sm" variant="soft" color={st.k === "y" ? "success" : st.k === "n" ? "danger" : "default"} className="font-semibold">
-              {st.t}
-            </Chip>
+            <Fact ic="clock">
+              {(() => {
+                const [head, ...rest] = st.t.split(" · ");
+                return (
+                  <>
+                    <b className={cx("font-semibold", st.k === "y" ? "text-success" : st.k === "n" ? "text-danger" : "text-foreground")}>{head}</b>
+                    {rest.length > 0 && <span> · {rest.join(" · ")}</span>}
+                  </>
+                );
+              })()}
+            </Fact>
           )}
           {ws && (
-            <Chip size="sm" variant="soft" color={ws.live ? "success" : "accent"} className="gap-1.5 font-semibold">
-              {ws.live ? <i className="bg-success pulse-soft size-2 rounded-full" /> : "⏱"}
+            <Fact ic="hourglass">
+              {ws.live && <i className="bg-success pulse-soft mr-1.5 inline-block size-2 rounded-full align-middle" />}
               {ws.t}
-            </Chip>
+            </Fact>
           )}
-        </div>
-        <div className="text-muted mt-1.5 text-[13px]">
-          {fmtMin(fromMe)} walk from {me.label === "Metro station" ? "the Metro" : "you"}
-        </div>
+          <Fact ic="people">
+            {fmtMin(fromMe)} walk from {me.label === "Metro station" ? "the Metro" : "you"}
+          </Fact>
+        </ul>
       </div>
       {(p.status === "closed_permanently" || p.status === "moved") && (
         <Banner title={p.status === "moved" ? "Moved away" : "Permanently closed"}>
@@ -188,7 +204,7 @@ export function PlaceSheet({ p, tab, setTab, actions }: { p: Place; tab: string;
           <Tabs.ListContainer className="bg-overlay sticky top-0 z-[2] px-4 pb-1">
             <Tabs.List aria-label="Place details" className="w-full">
               {[["overview", "Overview"], ["about", "About"], ["story", "Their story"]].map(([k, l]) => (
-                <Tabs.Tab key={k} id={k} className="flex-1 text-[13px] font-semibold">
+                <Tabs.Tab key={k} id={k} className="flex-1 text-sm font-semibold">
                   {l}
                   <Tabs.Indicator />
                 </Tabs.Tab>
@@ -297,10 +313,10 @@ function Overview({ p, actions }: { p: Place; actions: SheetActions }) {
 function About({ p }: { p: Place }) {
   return (
     <>
-      <p className="mt-3 mb-1 text-[14.5px] leading-relaxed">{p.desc || "Description coming soon."}</p>
+      <p className="mt-3 mb-1 text-sm leading-relaxed">{p.desc || "Description coming soon."}</p>
       {!!p.knownFor?.length && (
         <div>
-          <div className="text-accent mt-3 text-[11px] font-semibold tracking-[0.14em] uppercase">Known for</div>
+          <div className="text-accent mt-3 text-xs font-semibold tracking-[0.14em] uppercase">Known for</div>
           <div className="my-2 flex flex-wrap gap-1.5">
             {p.knownFor.map((k) => (
               <Chip key={k} size="md" variant="secondary">
@@ -336,13 +352,13 @@ function About({ p }: { p: Place }) {
 function Story({ p }: { p: Place }) {
   return (
     <>
-      <div className="bg-gold-soft mt-3 rounded-3xl p-4">
+      <div className="bg-gold-soft mt-3 rounded-[20px] p-4">
         <h4 className="font-display text-gold m-0 mb-1.5 text-base font-extrabold tracking-[-0.02em]">
           {p.story && p.legacy ? "A Little Tokyo legacy business" : "Their story"}
         </h4>
         <p className="m-0 text-sm leading-relaxed">{p.story || "No story yet."}</p>
         {p.story && p.storySource && (
-          <div className="text-muted mt-2 text-[11.5px]">
+          <div className="text-muted mt-2 text-xs">
             Source:{" "}
             <a href={p.storySource} target="_blank" rel="noopener" className="text-inherit">
               {domain(p.storySource)}
@@ -350,7 +366,7 @@ function Story({ p }: { p: Place }) {
           </div>
         )}
       </div>
-      <div className="bg-surface-secondary text-muted mt-3 rounded-3xl p-4 text-[13.5px]">
+      <div className="bg-surface-secondary text-muted mt-3 rounded-[20px] p-4 text-sm">
         <b className="text-foreground mb-1 block">A note from the owner</b>
         Owner stories coming soon.
       </div>
@@ -413,7 +429,7 @@ function SimpleInfo({ p }: { p: Place }) {
 export function RouteHead({ big, small }: { big: string; small: string }) {
   return (
     <div className="flex items-baseline gap-2.5 px-4 pt-2 pb-1">
-      <b className="font-display text-accent text-[32px] leading-none font-extrabold tracking-[-0.03em]">{big}</b>
+      <b className="font-display text-accent text-3xl leading-none font-extrabold tracking-[-0.03em]">{big}</b>
       <span className="text-muted text-sm">{small}</span>
     </div>
   );
@@ -428,7 +444,7 @@ export function RoutePanel({ fromName, to, r, label, onBack }: { fromName: strin
         <div className="text-muted mt-0.5 mb-2 text-xs">
           {(label ? label + ": " : "") + fromName + " → " + toName + ". Walking time at an easy pace, plaza walkways included."}
         </div>
-        <ul className="bg-surface-secondary m-0 mt-1.5 list-none rounded-3xl px-3.5 py-1">
+        <ul className="bg-surface-secondary m-0 mt-1.5 list-none rounded-[24px] px-3.5 py-1">
           <Step ic="●" text={"Start at " + fromName} />
           {r.steps.map((s, i) => (
             <Step key={i} ic={i ? "↱" : "↑"} text={(i ? "Continue on " : "Head along ") + stepName(s.k)} d={fmtM(s.m)} />
@@ -444,7 +460,7 @@ export function RoutePanel({ fromName, to, r, label, onBack }: { fromName: strin
 }
 function Step({ ic, text, d }: { ic: string; text: string; d?: string }) {
   return (
-    <li className="border-separator grid grid-cols-[26px_1fr_auto] items-center gap-2 border-b py-2.5 text-[13.5px] last:border-b-0">
+    <li className="border-separator grid grid-cols-[26px_1fr_auto] items-center gap-2 border-b py-2.5 text-sm last:border-b-0">
       <span className="text-accent text-center">{ic}</span>
       <span>{text}</span>
       <span className="text-muted text-xs tabular-nums">{d}</span>
@@ -463,9 +479,9 @@ export function MapBtn({ onClick, children, primary }: { onClick: () => void; ch
 /** Two-column HeroUI table (hours, parking rates). */
 function MiniTable({ label, cols, rows }: { label: string; cols: [string, string]; rows: { k: string; a: string; b: string; on?: boolean }[] }) {
   return (
-    <Table variant="secondary" className="mt-2 rounded-2xl">
+    <Table variant="secondary" className="mt-2 rounded-[14px]">
       <Table.ScrollContainer>
-        <Table.Content aria-label={label} className="text-[13px]">
+        <Table.Content aria-label={label} className="text-sm">
           <Table.Header>
             <Table.Column isRowHeader>{cols[0]}</Table.Column>
             <Table.Column className="text-right">{cols[1]}</Table.Column>
@@ -514,7 +530,7 @@ export function PlanSheet({
           style={on ? undefined : { background: "repeating-linear-gradient(var(--accent) 0 3px,transparent 3px 7px)" }}
         />
         <span>{`${fmtMin(m)} walk · ${fmtM(m)}`}</span>
-        <span className="text-accent truncate text-right text-[12.5px] font-semibold">to {nameOf(l.b)} ›</span>
+        <span className="text-foreground truncate text-right text-sm font-semibold">to {nameOf(l.b)} ›</span>
       </button>
     );
   };
@@ -523,11 +539,11 @@ export function PlanSheet({
     const on = active >= 0 && legs[active].a === p;
     return (
       <div className="grid grid-cols-[30px_1fr_auto] items-center gap-2.5 py-2">
-        <button type="button" onClick={() => focusLeg(i)} className={cx("size-[30px] rounded-full p-0 text-[12.5px] font-bold text-white shadow-[var(--surface-shadow)]", num === "P" ? "bg-park" : "bg-accent")}>
+        <button type="button" onClick={() => focusLeg(i)} className={cx("size-[30px] rounded-full p-0 text-sm font-bold text-white shadow-[var(--surface-shadow)]", num === "P" ? "bg-park" : "bg-accent")}>
           {num}
         </button>
         <button type="button" onClick={() => focusLeg(i)} className="flex min-w-0 flex-col bg-transparent p-0 text-left">
-          <b className={cx("text-[14.5px] font-semibold", on && "text-accent")}>{p.name}</b>
+          <b className={cx("text-sm font-semibold", on && "text-accent")}>{p.name}</b>
           <small className="text-muted text-xs">{sub}</small>
         </button>
         <MiniBtn onClick={() => details(p)}>Details</MiniBtn>
@@ -535,7 +551,7 @@ export function PlanSheet({
     );
   };
   const Start = ({ children }: { children: ReactNode }) => (
-    <div className="text-muted pt-1.5 pb-0.5 pl-10 text-[11px] font-semibold tracking-[0.12em] uppercase">{children}</div>
+    <div className="text-muted pt-1.5 pb-0.5 pl-10 text-xs font-semibold tracking-[0.12em] uppercase">{children}</div>
   );
 
   return (

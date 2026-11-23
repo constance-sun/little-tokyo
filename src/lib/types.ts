@@ -82,6 +82,8 @@ export interface Place {
   confidence?: string | null;
   // derived
   glyph: string;
+  /** finer kind (ramen, sushi, cafe, sweets, bar…); food glyphs collapse to dining/cafe, so match on this */
+  glyphKind: string;
   sub: string | null;
 }
 
@@ -132,4 +134,6 @@ export interface ChatMsg {
   role: "user" | "assistant";
   text: string;
   plan?: Plan | null;
+  /** a few suggested places (ids), when the visitor asked for ideas rather than a whole day */
+  picks?: string[] | null;
 }

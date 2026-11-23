@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Card, Chip, buttonVariants } from "@heroui/react";
 import { EmptyNote, Note, PageHeader, Sect } from "@/components/common";
 import { ECAT, EVENTS, eventVenue } from "@/lib/data";
@@ -9,7 +9,7 @@ import { openOnMap } from "@/state/store";
 import type { EventItem } from "@/lib/types";
 
 /* ======================================================================
-   EVENTS: category pills, a month calendar card with category dots,
+   EVENTS: category pills, a week strip (scrolls sideways a week at a time) with category dots,
    photo cards for the chosen day and what's coming up, and a detail overlay.
    ====================================================================== */
 
@@ -62,7 +62,7 @@ function EvCard({ e, onOpen }: { e: EventItem; onOpen: () => void }) {
     <button
       type="button"
       onClick={onOpen}
-      className="relative flex h-[176px] flex-col justify-between overflow-hidden rounded-3xl bg-cover bg-center p-3.5 text-left text-white shadow-[var(--surface-shadow)] transition-transform outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus)] active:scale-[0.98]"
+      className="relative flex h-[176px] flex-col justify-between overflow-hidden rounded-[24px] bg-cover bg-center p-3.5 text-left text-white shadow-[var(--surface-shadow)] transition-transform outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus)] active:scale-[0.98]"
       style={cardBg(e)}
     >
       <span className="z-[1] flex items-center gap-1.5">
@@ -80,7 +80,7 @@ function EvCard({ e, onOpen }: { e: EventItem; onOpen: () => void }) {
         </span>
       )}
       <span className="z-[1] flex flex-col gap-1">
-        <span className="text-[12px] font-medium opacity-90 [text-shadow:0_1px_6px_rgba(0,0,0,.7)]">{evWhen(e)}</span>
+        <span className="text-xs font-medium opacity-90 [text-shadow:0_1px_6px_rgba(0,0,0,.7)]">{evWhen(e)}</span>
         <b className="font-display text-xl leading-[1.08] font-extrabold tracking-[-0.025em] [text-shadow:0_1px_6px_rgba(0,0,0,.7)]">{e.title}</b>
       </span>
     </button>
@@ -102,7 +102,7 @@ export function EventDetailBody({ e, onClose, backLabel = "‹ Events" }: { e: E
   return (
     <>
       <div
-        className="relative mx-3 mt-3 flex min-h-[260px] flex-col justify-end gap-2 overflow-hidden rounded-[28px] bg-cover bg-center px-4 pt-3.5 pb-5 text-white"
+        className="relative mx-3 mt-3 flex min-h-[260px] flex-col justify-end gap-2 overflow-hidden rounded-[24px] bg-cover bg-center px-4 pt-3.5 pb-5 text-white"
         style={cardBg(e, "rgba(0,0,0,.55) 0%,rgba(0,0,0,.1) 32%,rgba(0,0,0,.25) 55%,rgba(0,0,0,.85) 100%")}
       >
         <Button
@@ -117,10 +117,10 @@ export function EventDetailBody({ e, onClose, backLabel = "‹ Events" }: { e: E
           <EvIcon c={e.category} size={22} icon={13} />
           <PhotoChip>{elabel(e.category)}</PhotoChip>
         </div>
-        <h2 className="font-display m-0 text-[28px] leading-[1.04] font-extrabold tracking-[-0.03em] [text-shadow:0_2px_14px_rgba(0,0,0,.5)]">{e.title}</h2>
+        <h2 className="font-display m-0 text-3xl leading-[1.04] font-extrabold tracking-[-0.03em] [text-shadow:0_2px_14px_rgba(0,0,0,.5)]">{e.title}</h2>
       </div>
       <div className="flex flex-col gap-3 p-4">
-        <Card>
+        <Card className="rounded-[24px]">
           <Card.Content className="grid gap-3">
             <Fact icon="clock" k="When" v={evWhen(e)} />
             {e.venue && <Fact icon="pin" k="Where" v={e.venue} />}
@@ -136,7 +136,7 @@ export function EventDetailBody({ e, onClose, backLabel = "‹ Events" }: { e: E
             </Alert.Content>
           </Alert>
         )}
-        {e.description && <p className="text-foreground/85 m-0 text-[14.5px] leading-relaxed">{e.description}</p>}
+        {e.description && <p className="text-foreground/85 m-0 text-sm leading-relaxed">{e.description}</p>}
         {e.recurring && <Note>Repeats: {e.recurring}</Note>}
         <div className="flex gap-2">
           {v && (
@@ -168,11 +168,30 @@ function Fact({ k, v, icon }: { k: string; v: string; icon: string }) {
         <Icon name={icon} size={17} />
       </span>
       <div className="min-w-0">
-        <small className="text-muted block text-[11.5px] font-medium">{k}</small>
-        <b className="text-[14.5px] font-semibold">{v}</b>
+        <small className="text-muted block text-xs font-medium">{k}</small>
+        <b className="text-sm font-semibold">{v}</b>
       </div>
     </div>
   );
+}
+
+/** Sunday-to-Saturday weeks from this week through the week of the last event (at least 8 weeks). */
+function weekRange(today: string): string[][] {
+  const t = pd(today);
+  const start = new Date(t.getTime() - t.getUTCDay() * 864e5);
+  const last = EVENTS.reduce((m, e) => ((e.end || e.start) > m ? e.end || e.start : m), today);
+  const n = Math.max(8, Math.ceil((pd(last).getTime() - start.getTime()) / (7 * 864e5)) + 1);
+  return Array.from({ length: n }, (_, w) => Array.from({ length: 7 }, (_, d) => iso(new Date(start.getTime() + (w * 7 + d) * 864e5))));
+}
+
+/** "November 2026", or "Nov – Dec 2026" / "Dec 2026 – Jan 2027" when a week spans two months. */
+function weekLabel(w: string[]) {
+  const a = pd(w[0]), b = pd(w[6]);
+  const o = { timeZone: "UTC" } as const;
+  if (a.getUTCMonth() === b.getUTCMonth()) return a.toLocaleDateString("en-US", { ...o, month: "long", year: "numeric" });
+  if (a.getUTCFullYear() === b.getUTCFullYear())
+    return `${a.toLocaleDateString("en-US", { ...o, month: "short" })} – ${b.toLocaleDateString("en-US", { ...o, month: "short", year: "numeric" })}`;
+  return `${a.toLocaleDateString("en-US", { ...o, month: "short", year: "numeric" })} – ${b.toLocaleDateString("en-US", { ...o, month: "short", year: "numeric" })}`;
 }
 
 export default function EventsView() {
@@ -192,29 +211,53 @@ export default function EventsView() {
 export function EventsBody({ onOpen, compact }: { onOpen: (e: EventItem) => void; compact?: boolean }) {
   const today = laToday();
   const [filter, setFilter] = useState("all");
-  const [month, setMonth] = useState(today.slice(0, 7));
   const [sel, setSel] = useState(today);
   const setOpen = onOpen;
 
   const list = useMemo(() => EVENTS.filter((e) => filter === "all" || e.category === filter), [filter]);
-  const [Y, Mo] = month.split("-").map(Number);
-  const first = new Date(Date.UTC(Y, Mo - 1, 1));
-  const days = new Date(Date.UTC(Y, Mo, 0)).getUTCDate();
-  const lead = first.getUTCDay();
-  const trail = (7 - ((lead + days) % 7)) % 7;
-  const shift = (k: number) => setMonth(iso(new Date(Date.UTC(Y, Mo - 1 + k, 1))).slice(0, 7));
+  const weeks = useMemo(() => weekRange(today), [today]);
+  const [wk, setWk] = useState(0);
+  const wkRef = useRef(0);
+  const strip = useRef<HTMLDivElement>(null);
+  const onScroll = () => {
+    const el = strip.current;
+    if (!el || !el.clientWidth) return;
+    wkRef.current = Math.max(0, Math.min(weeks.length - 1, Math.round(el.scrollLeft / el.clientWidth)));
+    setWk(wkRef.current);
+  };
+  const goWeek = (k: number) => {
+    const el = strip.current;
+    if (!el) return;
+    const i = Math.max(0, Math.min(weeks.length - 1, k));
+    const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollTo({ left: i * el.clientWidth, behavior: smooth ? "smooth" : "auto" });
+  };
+  // Keep the visible week pinned when the strip is resized (e.g. the map sheet changes width).
+  useEffect(() => {
+    const el = strip.current;
+    if (!el) return;
+    let w = el.clientWidth;
+    const ro = new ResizeObserver(() => {
+      if (el.clientWidth === w) return;
+      w = el.clientWidth;
+      el.scrollLeft = wkRef.current * w;
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const selEv = list.filter((e) => evOn(e, sel));
   const upcoming = list.filter((e) => (e.end || e.start) >= today).sort((a, b) => a.start.localeCompare(b.start)).slice(0, 14);
 
-  const chips: [string, string][] = [["all", "All"], ...Object.entries(ECAT).map(([k, v]) => [k, v[0]] as [string, string])];
+  // no "All" chip: tapping the active chip again goes back to everything (same as the map chips)
+  const chips: [string, string][] = Object.entries(ECAT).map(([k, v]) => [k, v[0]] as [string, string]);
 
   const soon = EVENTS.filter((e) => (e.end || e.start) >= today && e.start <= iso(new Date(pd(today).getTime() + 6 * 864e5))).length;
   return (
     <>
         {compact ? (
           <div className="mb-3 flex items-baseline justify-between gap-2">
-            <h2 className="font-display m-0 text-[22px] leading-tight font-extrabold tracking-[-0.03em]">What's on</h2>
-            <span className="text-muted text-[13px]">{soon ? `${soon} event${soon > 1 ? "s" : ""} this week` : "Festivals, pop-ups, shows"}</span>
+            <h2 className="font-display m-0 text-2xl leading-tight font-extrabold tracking-[-0.03em]">What's on</h2>
+            <span className="text-muted text-sm">{soon ? `${soon} event${soon > 1 ? "s" : ""} this week` : "Festivals, pop-ups, shows"}</span>
           </div>
         ) : (
           <PageHeader title="What's on" lede="Festivals, pop-ups, shows." />
@@ -226,63 +269,61 @@ export function EventsBody({ onOpen, compact }: { onOpen: (e: EventItem) => void
               size="sm"
               variant={filter === k ? "primary" : "secondary"}
               aria-pressed={filter === k}
-              onPress={() => setFilter(k)}
-              className="flex-none gap-1.5 rounded-full"
+              onPress={() => setFilter(filter === k ? "all" : k)}
+              className={cx("flex-none gap-1.5 rounded-full", filter !== k && "text-foreground")}
             >
-              {k !== "all" && <EvIcon c={k} size={16} icon={10} />}
+              <Icon name={eicon(k)} size={16} stroke={filter === k ? "currentColor" : ecol(k)} />
               {l}
             </Button>
           ))}
         </div>
 
-        <Card className="mt-3 p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <Button isIconOnly size="sm" variant="tertiary" aria-label="Previous month" onPress={() => shift(-1)}>‹</Button>
-            <b className="font-display text-[17px] font-extrabold tracking-[-0.02em]">
-              {first.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}
-            </b>
-            <Button isIconOnly size="sm" variant="tertiary" aria-label="Next month" onPress={() => shift(1)}>›</Button>
+        <Card className="mt-3 rounded-[24px] p-3">
+          <div className="mb-1.5 flex items-center justify-between">
+            <Button isIconOnly size="sm" variant="tertiary" aria-label="Previous week" isDisabled={wk === 0} onPress={() => goWeek(wk - 1)}>‹</Button>
+            <b className="font-display text-base font-extrabold tracking-[-0.02em]" aria-live="polite">{weekLabel(weeks[wk])}</b>
+            <Button isIconOnly size="sm" variant="tertiary" aria-label="Next week" isDisabled={wk === weeks.length - 1} onPress={() => goWeek(wk + 1)}>›</Button>
           </div>
 
-          <div className="grid grid-cols-[repeat(7,minmax(0,1fr))] gap-y-1 text-center">
-            {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
-              <div key={i} className="text-muted pb-1 text-[11px] font-semibold">{d}</div>
+          <div ref={strip} onScroll={onScroll} className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain">
+            {weeks.map((w) => (
+              <div key={w[0]} className="grid w-full flex-none snap-start snap-always grid-cols-[repeat(7,minmax(0,1fr))] gap-1">
+                {w.map((day) => {
+                  const evs = list.filter((e) => evOn(e, day));
+                  const cats = [...new Set(evs.map((e) => e.category))];
+                  const isToday = day === today, isSel = day === sel, past = day < today;
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      aria-label={`${fmtDay(day, { weekday: "long", month: "long", day: "numeric" })}, ${evs.length} events`}
+                      aria-pressed={isSel}
+                      onClick={() => setSel(day)}
+                      className={cx(
+                        "flex h-[72px] w-full flex-col items-center justify-start gap-1 rounded-[14px] pt-1.5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:ring-inset",
+                        isSel ? "bg-accent-soft" : "hover:bg-default",
+                      )}
+                    >
+                      <span className={cx("text-xs leading-none font-semibold", isSel ? "text-accent" : "text-muted")}>
+                        {fmtDay(day, { weekday: "narrow" })}
+                      </span>
+                      <span
+                        className={cx(
+                          "grid size-7 place-items-center rounded-full text-sm leading-none font-semibold",
+                          isToday ? "bg-accent text-accent-foreground" : isSel ? "text-accent" : evs.length && !past ? "text-foreground" : "text-muted/70",
+                        )}
+                      >
+                        {pd(day).getUTCDate()}
+                      </span>
+                      <span className="flex h-2.5 items-center gap-0.5">
+                        {cats.slice(0, 2).map((c) => <EvIcon key={c} c={c} size={10} icon={6} />)}
+                        {cats.length > 2 && <span className="text-muted text-[8.5px] leading-none">+{cats.length - 2}</span>}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             ))}
-            {Array.from({ length: lead }, (_, i) => <div key={"l" + i} aria-hidden />)}
-            {Array.from({ length: days }, (_, i) => {
-              const d = i + 1;
-              const day = `${month}-${String(d).padStart(2, "0")}`;
-              const evs = list.filter((e) => evOn(e, day));
-              const cats = [...new Set(evs.map((e) => e.category))];
-              const isToday = day === today, isSel = day === sel;
-              return (
-                <button
-                  key={day}
-                  type="button"
-                  aria-label={`${day}, ${evs.length} events`}
-                  aria-pressed={isSel}
-                  onClick={() => setSel(day)}
-                  className={cx(
-                    "mx-auto flex h-[50px] w-full max-w-[46px] flex-col items-center justify-start gap-1 rounded-2xl pt-1.5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus)]",
-                    isSel ? "bg-accent-soft" : "hover:bg-default",
-                  )}
-                >
-                  <span
-                    className={cx(
-                      "grid size-6 place-items-center rounded-full text-[13px] leading-none font-semibold",
-                      isToday ? "bg-accent text-accent-foreground" : isSel ? "text-accent" : evs.length ? "text-foreground" : "text-muted/70",
-                    )}
-                  >
-                    {d}
-                  </span>
-                  <span className="flex items-center gap-0.5">
-                    {cats.slice(0, 2).map((c) => <EvIcon key={c} c={c} size={10} icon={6} />)}
-                    {cats.length > 2 && <span className="text-muted text-[8.5px] leading-none">+{cats.length - 2}</span>}
-                  </span>
-                </button>
-              );
-            })}
-            {Array.from({ length: trail }, (_, i) => <div key={"t" + i} aria-hidden />)}
           </div>
         </Card>
 

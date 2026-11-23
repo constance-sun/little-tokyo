@@ -5,7 +5,10 @@ export type Feature =
   | "satellite" // photo imagery under the map
   | "eventsSheet" // events live in a bottom sheet on the map (no Events tab); details overlay it
   | "mapChips" // Parking / Restrooms lead the chip row; the round map buttons are gone
-  | "noAccount"; // no account, saving, owner tools or light/dark toggle (always light)
+  | "noAccount" // no account, saving, owner tools or light/dark toggle (always light)
+  | "menuPage" // header is the emblem + a Menu button that opens a full-page menu (no tab row)
+  | "gmaps" // drawn Google-Maps-style base map; only Little Tokyo's own buildings are coloured
+  | "chatGuide"; // the Guide (Plan a day) page is one full-page AI chat: no survey or hold-to-talk
 
 export interface Iteration {
   id: string;
@@ -36,11 +39,17 @@ export const ITERATIONS: Iteration[] = [
   {
     id: "4",
     name: "4 · Google Maps style",
-    diff: "Events move into a bottom sheet on the map and place details slide over it. Parking and Restrooms become chips, the round map buttons go, and dark mode and accounts are removed.",
-    features: ["satellite", "eventsSheet", "mapChips", "noAccount"],
+    diff: "Events move into a bottom sheet on the map and place details slide over it. A Menu button replaces the tabs, Parking and Restrooms become chips, and dark mode and accounts are removed.",
+    features: ["satellite", "eventsSheet", "mapChips", "noAccount", "menuPage"],
+  },
+  {
+    id: "5",
+    name: "5 · Drawn map",
+    diff: "Back to a drawn map in Google Maps colours: grey ground, white streets, green parks. Only Little Tokyo's own buildings are coloured, by what's inside. Events go back to their own page, listed in the menu. The Guide is just a chat: describe your day and the plan is built in the conversation.",
+    features: ["gmaps", "mapChips", "noAccount", "menuPage", "chatGuide"],
   },
 ];
 
-export const DEFAULT_ITERATION = "4";
+export const DEFAULT_ITERATION = "5";
 
 export const iterationHas = (id: string, f: Feature) => (ITERATIONS.find((i) => i.id === id) ?? ITERATIONS[ITERATIONS.length - 1]).features.includes(f);

@@ -96,7 +96,6 @@ export class MapEngine {
   lots: SVGPolygonElement[] = [];
   bldOf = new Map<string, Bld>();
   pinOf = new Map<string, HTMLButtonElement>();
-  clusters: (HTMLButtonElement & { _x: number; _y: number })[] = [];
   marks: (HTMLElement & { _x: number; _y: number })[] = [];
   meEl: HTMLDivElement | null = null;
   me: Me | null = null;
@@ -106,6 +105,7 @@ export class MapEngine {
   imagery!: Imagery;
   satellite = false;
   parkZoomed = false;
+  pinSpace = 34;
   private off: (() => void)[] = [];
 
   constructor(o: { svg: SVGSVGElement; world: SVGGElement; box: HTMLElement; pins: HTMLElement; scaleBar: HTMLElement; scaleTxt: HTMLElement; cb: EngineCallbacks }) {
@@ -182,10 +182,15 @@ export class MapEngine {
       }
     world.append(cas, fil);
     // buildings: soft shadow + footprint; empty buildings stay off the map
+    // (the drawn Google-Maps style shows the empty ones too, as flat grey context: .g-ctx in map.css)
+    const ctx = sv("g", { class: "g-ctx", "pointer-events": "none" });
     const sh = sv("g", { transform: "translate(1.6 2.4)", class: "g-bshadow" }), bl = sv("g", { class: "g-blds" });
     for (const b of GEO.buildings) {
       const inside = PLACES.filter((p) => (POI(p) || p.cat === "park" || p.cat === "wc") && pip(p.x, p.y, b.p));
-      if (!inside.length && !b.pk) continue;
+      if (!inside.length && !b.pk) {
+        ctx.append(sv("polygon", { points: ptsAttr(b.p), "stroke-linejoin": "round", "vector-effect": "non-scaling-stroke" }));
+        continue;
+      }
       const shp = sv("polygon", { points: ptsAttr(b.p), fill: "rgba(0,0,0,.55)", "fill-opacity": 0.12 }) as SVGPolygonElement;
       sh.append(shp);
       const pg = sv("polygon", { points: ptsAttr(b.p), fill: "var(--bldg)", stroke: "var(--bldg-edge)", "stroke-width": 0.8, "stroke-linejoin": "round", "vector-effect": "non-scaling-stroke" }) as SVGPolygonElement;
@@ -194,9 +199,9 @@ export class MapEngine {
       this.blds.push(bld);
       inside.forEach((p) => { if (POI(p) || !this.bldOf.has(p.id)) this.bldOf.set(p.id, bld); });
     }
-    world.append(sh, bl);
+    world.append(ctx, sh, bl);
     // street names along the road
-    const namesG = sv("g", { "font-family": "Archivo, sans-serif", "font-size": 10, "letter-spacing": ".9", fill: "var(--label)", "font-weight": 500, "pointer-events": "none", class: "g-names" }) as SVGGElement;
+    const namesG = sv("g", { "font-family": "'Gen Interface JP', sans-serif", "font-size": 10, "letter-spacing": ".9", fill: "var(--label)", "font-weight": 500, "pointer-events": "none", class: "g-names" }) as SVGGElement;
     const seen: Record<string, number> = {};
     const L = (p: [number, number][]) => { let s = 0; for (let i = 1; i < p.length; i++) s += Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]); return s; };
     GEO.roads
@@ -223,7 +228,7 @@ export class MapEngine {
     this.namesG = namesG;
     // plaza labels
     ([["WELLER COURT", -205, -82], ["HONDA PLAZA", 112, 310], ["LITTLE TOKYO GALLERIA", 138, 500], ["JANM PLAZA", 100, -22], ["NOGUCHI PLAZA", -150, 70]] as [string, number, number][]).forEach(([t, x, y]) => {
-      const el = sv("text", { x, y, "font-size": 8, "text-anchor": "middle", fill: "var(--plaza-label)", "font-weight": 700, "font-family": "Archivo, sans-serif", "letter-spacing": ".8", "pointer-events": "none", class: "plbl" }, t) as SVGTextElement;
+      const el = sv("text", { x, y, "font-size": 8, "text-anchor": "middle", fill: "var(--plaza-label)", "font-weight": 700, "font-family": "'Gen Interface JP', sans-serif", "letter-spacing": ".8", "pointer-events": "none", class: "plbl" }, t) as SVGTextElement;
       world.append(el);
       this.plbls.push(el);
     });
@@ -277,7 +282,7 @@ export class MapEngine {
     this.clamp();
     const { cx, cy, z } = this.cam;
     this.world.setAttribute("transform", `translate(${(this.W / 2 - cx * z).toFixed(2)} ${(this.H / 2 - cy * z).toFixed(2)}) scale(${z.toFixed(4)})`);
-    this.pinsEl.className = "pins " + (z < 1.1 ? "z0" : z < 2.3 ? "z1" : "z2");
+    this.pinsEl.className = "pins " + (z < 2.3 ? "z1" : "z2");
     if (Math.abs(z - this.lastNameZ) / z > 0.12) {
       this.lastNameZ = z;
       this.namesG.setAttribute("font-size", (10.5 / Math.min(z, 3.2)).toFixed(2));
@@ -314,6 +319,10 @@ export class MapEngine {
     this.satellite = on;
     this.box.classList.toggle("sat", on);
     if (on) this.loadImagery();
+  }
+  /** Drawn Google-Maps-style base (iteration 5+): restyles ground, streets and buildings via .gm in map.css. */
+  setGmaps(on: boolean) {
+    this.box.classList.toggle("gm", on);
   }
   private loadImagery() {
     const m = 80 / this.cam.z; // preload a margin around the view
@@ -400,7 +409,7 @@ export class MapEngine {
       if (ptrs.size) return;
       box.classList.remove("drag");
       const tgt = e.target as Element | null;
-      if (!this.moved && !(tgt && tgt.closest && tgt.closest(".pin,.cluster,.stopnum"))) {
+      if (!this.moved && !(tgt && tgt.closest && tgt.closest(".pin,.stopnum"))) {
         const r = box.getBoundingClientRect();
         const now = Date.now();
         const w = this.toWorld(e.clientX - r.left, e.clientY - r.top);
@@ -449,7 +458,7 @@ export class MapEngine {
     if (s.planMode) return false;
     if (p.cat === "wc") return s.showWC || s.filter === "wc" || s.selected === p || s.routeTarget === p;
     if (p.cat === "park") return s.filter === "park" || s.selected === p || s.routeTarget === p || (s.filter === "all" && this.cam.z >= 1.6);
-    if (p.cat === "metro") return true;
+    if (p.cat === "metro") return s.selected === p || s.routeTarget === p; // no standing Metro pin; it still shows when picked or routed to
     if (isGone(p) && s.filter !== "closed") return s.selected === p;
     switch (s.filter) {
       case "all": return true;
@@ -464,6 +473,9 @@ export class MapEngine {
   }
 
   update(st: MapFilterState) {
+    const o = this.st;
+    // a new filter is a new set of pins: rank them afresh instead of keeping the old full dots
+    if (st.filter !== o.filter || st.subs !== o.subs || st.waitF !== o.waitF || st.showWC !== o.showWC) this.shown.clear();
     this.st = st;
     this.refreshVisibility();
   }
@@ -515,65 +527,87 @@ export class MapEngine {
     }
   }
 
-  /* ---------------- clusters + labels ---------------- */
-  private clusterPins() {
-    this.clusters.forEach((c) => c.remove());
-    this.clusters = [];
-    PLACES.forEach((p) => this.pinOf.get(p.id)!.classList.remove("inclus"));
-    if (this.st.planMode) { this.placeFloating(); return; }
-    const z = this.cam.z;
-    const R = z < 1.1 ? 30 : z < 2.3 ? 26 : 20;
-    const vis = PLACES.filter((p) => !this.pinOf.get(p.id)!.hidden && p !== this.st.selected && p.cat !== "metro");
-    const pts = vis.map((p) => [p, ...this.toScreen(p.x, p.y)] as [Place, number, number]);
-    const used = new Set<Place>();
-    for (const [p, x, y] of pts) {
-      if (used.has(p)) continue;
-      const grp = pts.filter(([q, qx, qy]) => !used.has(q) && q.cat === p.cat && Math.hypot(qx - x, qy - y) < R);
-      if (grp.length < 2 || z >= 5) continue;
-      grp.forEach(([q]) => { used.add(q); this.pinOf.get(q.id)!.classList.add("inclus"); });
-      const members = grp.map((g) => g[0]);
-      const cx = members.reduce((a, q) => a + q.x, 0) / members.length, cy = members.reduce((a, q) => a + q.y, 0) / members.length;
-      const btn = document.createElement("button") as HTMLButtonElement & { _x: number; _y: number };
-      btn.type = "button";
-      btn.className = "cluster";
-      btn.setAttribute("aria-label", `${members.length} ${CATS[p.cat].label.toLowerCase()} places here, tap to zoom in`);
-      btn.style.setProperty("--ring", CATS[p.cat].color);
-      const b = document.createElement("b");
-      b.textContent = members.length > 9 ? "9+" : members.length + (members.length >= 3 ? "+" : "");
-      btn.append(b);
-      btn._x = cx;
-      btn._y = cy;
-      btn.addEventListener("click", (e) => {
-        if (this.moved) return;
-        e.stopPropagation();
-        const xs = members.map((q) => q.x), ys = members.map((q) => q.y);
-        const span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys), 8);
-        this.flyTo(cx, cy, Math.min(ZMAX, Math.max(this.cam.z * 2, (Math.min(this.W, this.H) * 0.45) / span)), 500);
-      });
-      this.pinsEl.append(btn);
-      this.clusters.push(btn);
+  /* ---------------- pin layout + labels ---------------- */
+  /** Config panel: how much room (screen px) each full pin needs before lower-ranked neighbours shrink to points. */
+  setPinSpace(space: number) {
+    this.pinSpace = space;
+    this.shown.clear();
+    this.declutter();
+  }
+
+  /** Which pins win the room when space is tight: selected, route target, legacy, then food, shops, sights. */
+  private rank(p: Place) {
+    const { selected, routeTarget } = this.st;
+    return (p === selected ? 1000 : 0) + (p === routeTarget ? 500 : 0) + (p.legacy ? 10 : 0) +
+      (p.photos.length ? 1 : 0) + ({ eat: 3, shop: 2, explore: 2, park: 1, wc: 0.5, metro: 0 } as Record<string, number>)[p.cat];
+  }
+
+  /**
+   * Greedy, priority-ordered layout. Pins don't change size with zoom; crowding decides what each shows:
+   * a pin keeps its full dot only if no higher-ranked dot is within `pinSpace` px. The rest shrink to small colour points.
+   */
+  /** Pins that were full dots on screen at the last layout. They are placed first next time, so zooming in only
+   *  adds dots (they only spread further apart) and panning never swaps one out. Zooming out drops the lowest-ranked. */
+  private shown = new Set<Place>();
+  private layoutPins() {
+    const sel = this.st.selected, rt = this.st.routeTarget;
+    const was = this.shown;
+    const vis = PLACES.filter((p) => !this.pinOf.get(p.id)!.hidden)
+      .sort((a, b) => Number(was.has(b)) - Number(was.has(a)) || this.rank(b) - this.rank(a));
+    const now = new Set<Place>();
+    const D = this.pinSpace;
+    const placed: [number, number][] = [];
+    const m = 60; // pins this far off screen don't take room from visible ones
+    for (const p of vis) {
+      const [sx, sy] = this.toScreen(p.x, p.y);
+      const off = sx < -m || sy < -m || sx > this.W + m || sy > this.H + m;
+      const full = off || p === sel || p === rt || placed.every(([qx, qy]) => Math.hypot(qx - sx, qy - sy) >= D);
+      this.pinOf.get(p.id)!.classList.toggle("pt", !full);
+      if (full && !off) { placed.push([sx, sy]); now.add(p); }
     }
-    this.placeFloating();
+    this.shown = now;
   }
   private placeFloating() {
-    for (const n of [...this.marks, ...this.clusters]) {
+    for (const n of this.marks) {
       const [sx, sy] = this.toScreen(n._x, n._y);
       n.style.transform = `translate(${sx.toFixed(1)}px,${sy.toFixed(1)}px)`;
     }
   }
-  /** Show a pin's name only where it doesn't collide with another (selected, legacy and food first). */
+  /** Real width (px) of a pin's label in the current font, measured once per place and reset when web fonts load. */
+  private labW = new Map<string, number>();
+  private measureCtx: CanvasRenderingContext2D | null = null;
+  private labelW(p: Place) {
+    let w = this.labW.get(p.id);
+    if (w != null) return w;
+    const lab = this.pinOf.get(p.id)!.querySelector(".l") as HTMLElement;
+    if (!this.measureCtx) {
+      this.measureCtx = document.createElement("canvas").getContext("2d");
+      const onFonts = () => { this.labW.clear(); this.declutter(); };
+      document.fonts?.addEventListener("loadingdone", onFonts);
+      this.off.push(() => document.fonts?.removeEventListener("loadingdone", onFonts));
+    }
+    const c = this.measureCtx;
+    if (!c) return lab.textContent!.length * 6.6;
+    const cs = getComputedStyle(lab);
+    c.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    w = c.measureText(lab.textContent || "").width;
+    this.labW.set(p.id, w);
+    return w;
+  }
+
+  /** Show a dot's name only where it doesn't collide with another (selected, legacy and food first). */
   private declutter() {
-    this.clusterPins();
+    if (this.st.planMode) { this.placeFloating(); return; }
+    this.layoutPins();
     const boxes: number[][] = [];
     const sel = this.st.selected;
-    const vis = PLACES.filter((p) => { const el = this.pinOf.get(p.id)!; return !el.hidden && !el.classList.contains("inclus"); });
-    const pr = (p: Place) => (p === sel ? 100 : 0) + (p.legacy ? 10 : 0) + (p.cat === "eat" ? 3 : p.cat === "shop" || p.cat === "explore" ? 2 : 0);
-    vis.sort((a, b) => pr(b) - pr(a));
+    const vis = PLACES.filter((p) => { const el = this.pinOf.get(p.id)!; return !el.hidden && !el.classList.contains("pt"); });
+    vis.sort((a, b) => this.rank(b) - this.rank(a));
     for (const p of vis) {
       const [sx, sy] = this.toScreen(p.x, p.y);
-      const tw = p.name.length * 6.6, w = Math.min(112, tw), lines = Math.min(2, Math.ceil(tw / 112));
+      const tw = this.labelW(p), w = Math.min(112, tw), lines = Math.min(2, Math.ceil(tw / 112));
       const r = [sx + 14, sy - 9, sx + 16 + w, sy - 7 + lines * 13];
-      const pinR = [sx - 12, sy - 12, sx + 12, sy + 12];
+      const pinR = [sx - 14, sy - 14, sx + 14, sy + 14];
       const hit = boxes.some((b) => !(r[2] < b[0] || r[0] > b[2] || r[3] < b[1] || r[1] > b[3]));
       this.pinOf.get(p.id)!.classList.toggle("nolab", hit && p !== sel);
       if (!hit) boxes.push(r);
@@ -588,7 +622,7 @@ export class MapEngine {
     const d = document.createElement("div");
     d.className = "me";
     const s = document.createElement("span");
-    s.textContent = me.label === "Metro station" ? "Start: Metro" : "You";
+    s.textContent = me.label === "Metro station" ? "Metro" : "You";
     d.append(s);
     this.meEl = d;
     this.pinsEl.append(d);

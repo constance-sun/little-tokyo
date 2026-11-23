@@ -73,7 +73,9 @@ Conventions:
 - **Phone (width 700px or less, or a coarse pointer on a small screen).** The site fills the screen with no frame chrome and respects safe-area insets.
 - **Config panel.** On computers, a "Config" card sits left of the phone frame. It is where iteration controls live. It currently holds one dropdown that tracks the design iteration (stored as `lt-iteration`) and a 1-2 line note on what differs in that iteration. The list is `src/lib/iterations.ts`. Each iteration lists `features` the app reads with `iterationHas(id, feature)`; read them in components with `useFeature(f)` from the store. Iterations 1 and 2 don't change the UI. The features are:
   - `satellite` (iterations 3 and 4)
-  - `eventsSheet`, `mapChips` and `noAccount` (iteration 4, the default; see "Iteration 4" below) Hidden on phones.
+  - `mapChips`, `noAccount` and `menuPage` (iterations 4 and 5), `eventsSheet` (iteration 4 only; see "Iteration 4" below)
+  - `gmaps` and `chatGuide` (iteration 5, the default; see "Iteration 5" below and section 5). Iteration 5 drops `satellite` and `eventsSheet`.
+  - The Config panel is hidden on phones, and it exists only in dev (`npm run dev`). The production build has no Config panel and always uses the defaults (iteration 5, Room per pin 45), ignoring saved `lt-iteration` / `lt-pin-space`.
 - **Header** (hidden on the cover page). It shows the boxed red wordmark `little– / tokyo` (Archivo Black, links to the cover), a light/dark toggle (sun/moon), and an account button (person icon, filled red while on Account).
 - **Top menu** with numbered items: `01 Map · 02 Events · 03 Plan a day · 04 Legacy`. The current item is underlined in red with a red number. Items are spaced evenly.
 - **Hash router.** The views are `#home #map #events #plan #legacy #account`, and unknown hashes go to home. **The site always opens on the cover page**: any hash on first load is stripped.
@@ -81,8 +83,10 @@ Conventions:
 - **Look (original).** Crisp white paper and near-black ink with one strong red. Corners were square-ish (about 2px), cards flat with hairline rules, with a subtle paper-grain overlay.
 - **Design (rebuild).** HeroUI's default theme, branded:
   - colour: a light-grey background with white rounded surfaces and soft shadows; the accent is the Little Tokyo red (`--accent` in `src/index.css`)
-  - shape: `--radius: 0.75rem`, pill chips and buttons, segmented tabs
-  - type: Archivo everywhere, Archivo Black for the boxed `little– tokyo` logo, Zen Kaku Gothic New for Japanese
+  - shape: `--radius: 0.75rem`, pill chips and buttons, segmented tabs. Corner radii follow the Figma file (Temp → "lil tokyo"): cards 28, floating panels/popovers/event cards 24, photos 22, tiles and toasts 20, chat bubbles 18, day cells/table/thumbnails 14, checkboxes 5, sheets 28 on top. HeroUI's defaults are overridden in `src/index.css`.
+  - type: Gen Interface JP everywhere, Japanese included. It is self-hosted from `public/fonts/` in weights 400–800 (SIL OFL), trimmed to Latin, punctuation and the site's own Japanese characters, with Hiragino Sans as the fallback. Archivo Black is kept only for the boxed `little– tokyo` logo.
+  - type scale (tokens in `src/index.css` `@theme`): `text-xs` 12 (captions, badges, eyebrows) · **`text-sm` 14 for all body text, button labels and inputs** · `text-base` 16 · `text-xl` 20 · `text-2xl` 24 · `text-3xl` 32 · `text-4xl` 40 · `text-5xl` 48 · `text-7xl` 80. Use these classes, not arbitrary `text-[Npx]` sizes (`text-lg` is not on the scale). HeroUI's `lg` buttons and inputs are forced to 14 in `index.css`, and the viewport has `maximum-scale=1` so iOS doesn't zoom into 14px inputs. Exceptions: the boxed logo (52/54px), a few sub-12 micro labels (calendar "+n", cover side captions), and map pin/street labels in `map.css`/`engine.ts`.
+- **Buttons** (Figma "Button"): only primary buttons are red (red fill, white text). Secondary (grey fill), tertiary, ghost and outline buttons all use black text (`index.css`), and the current menu item is a grey fill with black text.
 - **Theme.** The modes are Match device, Light and Dark, stored as `lt-theme`. Match device follows `prefers-color-scheme` live. Every map colour has a light and a dark variant.
 
 ## 2. Cover page (`#home`)
@@ -94,15 +98,25 @@ Conventions:
 
 ## 3. Map (`#map`)
 
-### Iteration 4 (Google Maps style, default)
+### Iteration 5 (drawn map, default)
+- Everything from iteration 4 except the events sheet: events are their own page again (`#events`), listed in the menu as 01 Map · 02 Events · 03 Plan a day · 04 Legacy, and the map has no bottom sheet until a place is opened.
+- The base map is drawn again, not satellite, in Google Maps colours (`.mapbox.gm` in `map.css`): grey ground, white streets with a grey casing, green parks, grey dotted footways.
+- Empty buildings, which earlier iterations leave off, are drawn as flat grey context (`.g-ctx`, not tappable).
+- Only Little Tokyo's own buildings (the ones holding a place) are coloured: a soft tint of their main category under All, a stronger tint under a filter, with the drop shadow for lift.
+
+### Iteration 4 (Google Maps style)
+- **Menu bar** (`menuPage`, from the Figma "App bar"). A 60px bar replaces the wordmark and tab row: the black round emblem (`public/images/emblem.png`, links to the cover) on the left and a ghost icon button with the menu (☰) icon on the right (`aria-label` "Menu").
+  - The menu button opens a full-page menu under the bar, and its icon turns into an ✕ ("Close menu").
+  - The menu is a clean vertical stack of normal-sized HeroUI buttons (ghost, 200px wide, centered), vertically centered on the page: **Map**, **Events** (hidden while the events sheet is on), **Guide** (the Plan a day page, `#plan`) and **Legacy**. There are no numbers, blurbs or arrows. The current page gets a soft red fill and red text (`aria-current`). A "リトル東京 Little Tokyo, Los Angeles" footnote sits under the stack.
+  - Picking a row navigates and closes the menu. Esc or any navigation also closes it.
 - **Events sheet.** Events live in a bottom sheet on the map (`EventsBody compact` from `EventsView.tsx`), and there is no Events tab; `#events` shows the map.
   - The sheet never closes. It snaps to peek (title, "N events this week", category pills), half and full.
   - Tapping the peeking sheet raises it to half. Tapping empty map lowers it back to peek.
 - **Detail sheet.** Place, route, plan and event details open in the existing detail sheet. It slides in over the events sheet (z 20 over 19), and closing it reveals the events sheet again.
   - An event opens at full height with a "‹ Events" button that closes it.
-- **Chips and buttons.** Parking and Restrooms come right after All in the chip row. The floating restroom, parking and zoom buttons are gone; only "Set where I am" remains. Pinch, wheel and double-tap still zoom.
+- **Chips and buttons.** Parking and Restrooms lead the chip row, with no hint toast when tapped. The floating restroom, parking and zoom buttons are gone; only "Set where I am" remains. Pinch, wheel and double-tap still zoom.
 - **No accounts or dark mode.** The account button, the Account page (`#account` shows the map), Save/Saved on places, Save plan, the owner wait box and the light/dark toggle are hidden. The app is always light.
-- **Map credit.** The imagery/OSM credit floats just above whichever sheet is showing.
+- **No credit or scale bar (for now).** The imagery/OSM credit and the scale bar are hidden in this iteration.
 
 ### 3.1 Base map
 
@@ -140,22 +154,22 @@ Conventions:
   - 17 researched parking garages and lots, plus up to 10 extra "Public parking" spots from the visitor map. These are skipped when within 30m of a known garage.
   - 8 restrooms.
 - **Categories and colours:** Eat, Shop, Explore, Parking, Restroom and Metro.
-- **Glyphs.** Each place gets a glyph from its type, tags and name: ramen, sushi, sweets, cafe, bar, dining, books, art, shop, temple, church, museum, theater, music, lantern (JVP) or people.
+- **Glyphs.** Each place gets a glyph from its category, type, tags and name. All food places share one fork-and-spoon icon, except coffee/matcha cafés (tagged `coffee`, or a coffee/matcha type), which get a coffee cup. The finer food kind (ramen, sushi, sweets, bar…) is still worked out and drives the Filter panel's sub-types. Other glyphs: books, art, shop, temple, church, museum, theater, music, lantern (JVP) or people.
 - **Sub-types** feed the Filter panel:
   - Eat: ramen, sushi, comfort, bbq, cafes, snacks, bars, intl
   - Shop: gifts, anime, fashion, books, home, artcraft
   - Explore: temples, churches, museums, arts, community
 - **Pin appearance:**
   - A pin is a round dot in the category colour with a white line icon. Parking and restroom pins are rounded squares.
-  - Size depends on zoom: small below 1.1, normal below 2.3, and labelled above that.
-  - Legacy places get a gold outline, and closed places are grey.
+  - Pins are the same size at every zoom (28px, parking 22px); names show from zoom 2.3.
+  - Closed places are grey. Legacy places have no ring on the map (removed in the rebuild); they show ★ Legacy in search and the sheet, and the Legacy filter lights their buildings gold.
   - The selected pin is scaled ×1.3 and always labelled.
 - **Labels** follow Apple-Maps style:
   - placed to the right of the pin, in a darker version of the category colour, bold
   - up to 2 lines, max 112px wide, with a crisp white halo
   - parking pins show their short rate (e.g. "$15 day max") instead of the name
 - **Decluttering.** Labels are hidden where they would collide. Priority goes to the selected place, then legacy, then food, then shop and explore.
-- **Clusters.** Pins of the same category that overlap on screen (within 30/26/20px depending on zoom, below zoom 5) collapse into a coloured bubble with a count ("2", "3+", "9+"). Tapping a bubble zooms to fit its members.
+- **Crowding** (replaces the original's count clusters). Pins are ranked: selected, route target, legacy, photo, then food, shops and sights, then parking and restrooms. They are laid out greedily in that order (`layoutPins` in `engine.ts`) after each camera move settles. A pin keeps its full dot only if no higher-ranked dot is within the **Room per pin** distance. The rest shrink to 9px colour points that you can still tap. The Config panel's **Map pins** slider sets that distance (16–96px, default 45), stored as `lt-pin-space`.
 - **Building tint by filter:**
   - Under "All", buildings with places get a soft tint.
   - Under a category, matching buildings light up in that colour (gold for Legacy) and others go quiet.
@@ -164,8 +178,7 @@ Conventions:
 ### 3.4 Search, filters, buttons
 
 - **Search box** ("Search Little Tokyo", with a clear ✕). It matches name, type, tags, description and known-for, and shows up to 8 results. Each result has its icon, type, a ★ Legacy flag and the open state. Picking one opens the place. With no matches it says "No matches in Little Tokyo".
-- **Filter chips** (single choice; tap the active chip again to return to All):
-  - **All**
+- **Filter chips** (single choice; tap the active chip again to go back to showing everything). The original had an **All** chip; the rebuild drops it.
   - **Eat**, **Shop**, **Explore**
   - **Legacy** (gold)
   - **Open now**, with a toast "N places open right now"
@@ -176,31 +189,31 @@ Conventions:
   - Closed and moved places are hidden unless the "Closed / moved" filter is on or the place is selected.
   - Parking shows under Parking, when selected or a route target, or under All at zoom 1.6 and above.
   - Restrooms show under Restrooms, after the restroom button has been used, or when selected or a route target.
-  - The Metro is always shown.
+  - The Metro has no standing pin (removed in the rebuild). It shows only when selected (e.g. from search) or as a route target. The "Metro" start dot still marks the default start point.
 - **Filter button** (for Eat, Shop and Explore). It is labelled "Filter: All types" or with the chosen types and wait, and has a Clear link. It opens a panel with:
   - For Eat only: a **Wait time** radio (Any wait, Under 10, 30 or 60 min). Options with no matches are disabled, and a note reads "Busy-time waits, from reviews and owners."
   - Type checkboxes with icons and counts.
   - A Done button.
   - The filter is saved as `lt-filter` and the types as `lt-subs`.
 - **Buttons on the right:**
-  - 📍 **Set where I am**: the next tap on the map sets the start point (`lt-me3`), with the toast "Start point set." The default start is the Metro station, labelled "Start: Metro".
+  - 📍 **Set where I am**: the next tap on the map sets the start point (`lt-me3`), with the toast "Start point set." There is no hint toast when you press it (the original said "Tap the map where you are"). Instead the button turns red while it waits, and pressing it again cancels. The default start is the Metro station, labelled "Metro".
   - 🚻 **Nearest restroom**: routes from the selected place, or from you if nothing is selected.
   - 🅿️ **Nearest parking**: routes from the nearest garage to the selected place or to you.
   - **+** and **−** zoom.
-- The start point is drawn as a red dot labelled "Start: Metro" or "You".
+- The start point is drawn as a red dot labelled "Metro" or "You".
 
 ### 3.5 Bottom sheet (place details)
 
 - **Behaviour.** The sheet has a drag handle and snaps to four heights: closed, peek (about 250px), half (60%) and full. Tapping the handle toggles between full and half, and dragging it below about 60% of peek closes the sheet. The search bar hides when the sheet is full.
 - **Header:**
   - A horizontal photo strip with scroll-snap. Each photo carries a caption and an author · license credit with a link. Places with no photo show a category-coloured placeholder with the icon and "Photo coming soon".
-  - The name, then a category pill (type · price), then "★ Legacy · since YYYY".
-  - The open state, live in LA time: "Open · Closes 9 PM", "Closed · Opens tomorrow 11 AM", or "Hours not confirmed". This is followed by "· N min walk" from your start point.
-  - For restaurants, a wait pill: live in green, otherwise the researched figure.
+  - The name, then one plain subtitle line: type · price, with "★ Legacy since YYYY" in gold.
+  - Then a short list of facts, one per row with a muted icon (no chips): 🕒 the open state, live in LA time ("**Open** · Closes 9 PM", "**Closed** · Opens tomorrow 11 AM", "Hours not confirmed"; only the first word is coloured green/red); ⏳ for restaurants, the wait (live ones get a pulsing green dot); 👥 "N min walk from the Metro/you".
 - **Status banners:**
   - "Permanently closed." or "Moved away.", with a note
   - "Temporarily closed."
   - "Status not confirmed."
+- **Close button.** A small round ✕ (28px) sits at the right of the drag-handle strip while a place is open. The strip grows to 48px so the ✕ sits above the photos, not on them. It closes the sheet, the same as tapping empty map.
 - **Actions:** **Directions** (primary), **Parking** (nearest), **Restroom** (nearest), **Save**/**Saved** (★, stored as `lt-saved`) and **Copy** (name and address).
 - **Parking, restroom and Metro pages** are a single info panel:
   - address and description
@@ -251,16 +264,12 @@ Conventions:
 
 ## 4. Events (`#events`)
 
-- **Header and filter.** The page is titled "What's on" with the lede "Festivals, pop-ups, shows." Category chips: All, Festival, Pop-up, Music, Theater, Art & film, Community, Food and Exhibit, each with a coloured icon dot.
-- **Calendar header.** A month name with ‹ › buttons. It defaults to the current month in LA, with today selected.
-- **Ruled calendar grid:**
-  - an S M T W T F S header row
-  - day cells 58px tall
-  - days outside the month are tinted, and weekends get a light tint
-  - day numbers are faint unless the day has events
-  - today's number sits in a red circle
-  - the selected day has a red outline and a soft fill
-  - up to 2 category icons per day, plus "+n"
+- **Header and filter.** The page is titled "What's on" with the lede "Festivals, pop-ups, shows." Category chips: Festival, Pop-up, Music, Theater, Art & film, Community, Food and Exhibit, each with a line icon in its category colour. There is no All chip; tap the active chip again to show everything.
+- **Week strip** (replaces the original's month grid). One full week (Sunday to Saturday) is visible at a time, and it scrolls sideways with scroll-snap, one week per swipe. It runs from this week (in LA) to the week of the last event, with today selected.
+  - the header shows the month of the visible week ("November 2026", or "Nov – Dec 2026" when the week spans two months), with ‹ › buttons that scroll one week
+  - each day cell shows the weekday letter, the day number and up to 2 category icons plus "+n"
+  - day numbers are faint unless the day has events (and past days stay faint)
+  - today's number sits in a red circle, and the selected day gets a soft red fill
 - **Day and upcoming lists.** Below the grid is the selected day as a heading, then that day's events, or "Nothing on. Pick a day with a dot." Next is **Coming up** with the next 14 events that haven't ended. A footnote explains "Date to confirm".
 - **Event cards** are 170px tall:
   - the photo under a dark gradient, or a category gradient with a big faded icon when there is no photo
@@ -276,6 +285,19 @@ Conventions:
 
 ## 5. Plan a day (`#plan`)
 
+- **Iteration 5 (`chatGuide`): the page is one full-screen AI chat.** There is no hold-to-talk card, survey or separate "Tweak it" card.
+  - Empty state: "Plan your day", one line of intro and four starter prompts (e.g. "Half a day of ramen and shopping").
+  - The message list scrolls and the composer is pinned at the bottom: a dictation mic toggle, the text box and Send. Once a plan exists, the tweak chips (Less walking, Swap lunch…) sit above the composer.
+  - The itinerary is built in the chat. The newest reply carrying a plan shows the full plan card (👍 / 👎 / Details, See on map); older versions show as one line. After a reply, the view scrolls to your message so the answer reads from the top.
+  - **New chat** clears the chat and the plan. A new conversation starts from a blank survey: the offline parser fills groups and picks from what you typed, and falls back to the old survey answers if nothing matched. The first offline plan says "Here's a plan for your day…" instead of "Updated."
+  - With the host AI, the prompt also says it may ask one short question (and return no plan) when it doesn't know enough yet.
+  - **Ideas vs a plan.** Asking for a place or a few ideas ("where should I get ramen", "a couple of cafés", "I'm hungry", "nearest bathroom", "cheap parking") returns 1–3 ranked picks (open now, close by, legacy, photo), not a plan. The count follows the wording: one / a couple / a few. They show as a card of place rows in the chat (`ChatMsg.picks`). A timed plan is built only when you describe a visit ("half a day…", "a quick taste…", "plan…"). With the host AI, the JSON reply can carry `picks`.
+  - **Plan card in the chat:** the timeline markers are small category-icon dots (no numbers), with no icon beside the name and no 👍/👎. **Details** (a grey button) opens a temporary full-page place view (`PlaceDetailPage`, the map's place sheet) with a ✕ at the top right, in its own strip above the photos. Nearby places open inside it; Directions, Parking and Restroom switch to the map (`directionsOnMap` / `nearestOnMap`).
+  - **Plan map.** In the chat, the plan card ends with a static map preview (`PlanPreview` in `src/views/PlanMap.tsx`: drawn streets, the walking legs in blue and category-coloured stop dots) with an "Open map" pill instead of a "See on map" button. Tapping it opens `PlanMapPage`, a temporary full-page copy of the map (`MapView` in embedded mode, given a `plan`), with search, chips, numbered stops and the plan sheet laid out as on the map, plus a ✕ at the top right. In embedded mode the map ignores commands from other views, tapping empty map lowers the plan sheet to a peek instead of closing it, place taps and Details open the full-page place view, and "Close plan" closes the page.
+  - **New chat** sits in the top menu bar (next to the menu button) while you're on the Guide with a conversation going.
+  - **Composer:** the mic, then one rounded field with the text box and a small round send button (32px, ↑) inside it on the right.
+  - Food-only plans no longer fill every slot with a meal: they get one meal (two for a full day), with a café, a sight and a shop between. If nothing matching a pick is open for a slot, any open place of that kind is used.
+- The rest of this section describes iterations 1–4.
 - The page is titled "Plan your day" with the lede "Four questions. Or just say it."
 - **Hold to talk.** A big red mic button:
   - Hold it to talk and let go to plan. A tap shorter than 450ms switches to tap-to-start / tap-again-to-stop.
@@ -324,7 +346,8 @@ Conventions:
     - the current plan
     - an instruction to reply in JSON `{reply, plan:{title, park, stops:[{id,time,minutes,why}], tip}}`
     - The returned stops are checked against real places.
-  - **Without the AI (or when it fails),** a keyword parser updates the survey and rebuilds the plan. It understands foods, shops and experiences (and negations like "no sushi"), "full day", "quick", driving, metro and "less walking". It replies "Got it: … Updated."
+  - **Without the AI (or when it fails),** a keyword parser updates the survey and rebuilds the plan. It understands foods, shops and experiences (and negations like "no sushi"), whole groups ("shopping", "no food", "sights"), "half day", "full day", "quick", driving, metro, "cheap" parking and "less walking". It replies "Got it: … Updated."
+  - The planner matches food picks on `Place.glyphKind` (ramen, sushi, cafe, sweets, bar…), not `glyph`, because food glyphs collapse to the fork-and-spoon and coffee-cup icons.
 
 ## 6. Legacy (`#legacy`)
 
@@ -385,7 +408,7 @@ Opening hours are evaluated in **America/Los_Angeles**. Ranges past midnight car
 
 ## 10. localStorage keys
 
-`lt-theme`, `lt-iteration`, `lt-filter`, `lt-subs`, `lt-me3`, `lt-saved`, `lt-survey`, `lt-avoid`, `lt-plan`, `lt-chat`, `lt-acct`.
+`lt-theme`, `lt-iteration`, `lt-pin-space`, `lt-filter`, `lt-subs`, `lt-me3`, `lt-saved`, `lt-survey`, `lt-avoid`, `lt-plan`, `lt-chat`, `lt-acct`.
 
 ## 11. Known differences in the React rebuild
 
@@ -398,7 +421,7 @@ These are deliberate. Keep or revisit them on purpose.
 
 ## 12. Accessibility and motion
 
-- **Labels.** Buttons have `aria-label`s (map controls, pins with the place name, clusters with "N places here, tap to zoom in"). Menu items set `aria-current`, chips and tiles set `aria-pressed`, and tabs use `role=tab` with `aria-selected`.
+- **Labels.** Buttons have `aria-label`s (map controls, pins with the place name, including ones shrunk to points). Menu items set `aria-current`, chips and tiles set `aria-pressed`, and tabs use `role=tab` with `aria-selected`.
 - **Hidden headings.** Screen-reader-only headings exist on the cover page and in the about panel.
 - **Reduced motion.** `prefers-reduced-motion` turns off the stamp animation, camera fly animations, smooth scrolling and the spinner/pulse.
 - **Keyboard and focus.** Hold-to-talk works from the keyboard, and the focus ring uses the accent colour.

@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Button, Card, Label, ListBox, Select, Tabs, Toast } from "@heroui/react";
+import { Button, Card, Label, ListBox, Select, Slider, Tabs, Toast } from "@heroui/react";
 import { UNSAFE_PortalProvider } from "react-aria";
 import { Logo } from "@/components/common";
 import { Icon } from "@/lib/icons";
 import { SITE_URL } from "@/lib/data";
 import { cx } from "@/lib/cx";
 import { ITERATIONS } from "@/lib/iterations";
-import { navigate, setIteration, setState, setTheme, useApp, useFeature, VIEWS, type View } from "@/state/store";
+import { navigate, newChat, PIN_SPACE_DEFAULT, setIteration, setPinSpace, setState, setTheme, useApp, useFeature, VIEWS, type View } from "@/state/store";
 import { useHostBootstrap } from "@/state/host";
 import HomeView from "@/views/HomeView";
 import MapView from "@/views/map/MapView";
@@ -100,7 +100,7 @@ function SiteHeader({ view }: { view: View }) {
         <Tabs.ListContainer>
           <Tabs.List aria-label="Site menu" className="w-full">
             {menu.map(([v, label]) => (
-              <Tabs.Tab key={v} id={v} className="flex-1 text-[13px] font-semibold whitespace-nowrap">
+              <Tabs.Tab key={v} id={v} className="flex-1 text-sm font-semibold whitespace-nowrap">
                 {label}
                 <Tabs.Indicator />
               </Tabs.Tab>
@@ -112,6 +112,90 @@ function SiteHeader({ view }: { view: View }) {
   );
 }
 
+/** Iteration 4+ header (Figma "App bar"): the emblem on the left, a ghost menu icon button on the right (an ✕ while open). */
+function MenuBar({ open, onToggle, view }: { open: boolean; onToggle: () => void; view: View }) {
+  // the chat Guide's "New chat" lives in the bar so it stays put while the chat scrolls
+  const chatGuide = useFeature("chatGuide");
+  const hasChat = useApp((s) => s.chat.length > 0);
+  return (
+    <header className="bg-background relative z-30 flex h-[60px] flex-none items-center justify-between px-4">
+      <a href="#home" className="flex items-center" aria-label="Little Tokyo home">
+        <img src="/images/emblem.png" alt="" width={45} height={44} className="size-11 object-contain" />
+      </a>
+      <div className="flex items-center gap-1">
+      {chatGuide && view === "plan" && hasChat && !open && (
+        <Button size="sm" variant="secondary" onPress={newChat}>
+          <Icon name="compose" size={16} /> New chat
+        </Button>
+      )}
+      <Button
+        isIconOnly
+        variant="ghost"
+        size="lg"
+        aria-label={open ? "Close menu" : "Menu"}
+        aria-expanded={open}
+        aria-controls="site-menu"
+        onPress={onToggle}
+        className="text-foreground"
+      >
+        <Icon name={open ? "close" : "menu"} size={24} className="m-0! size-6!" />
+      </Button>
+      </div>
+    </header>
+  );
+}
+
+const PAGES: [View, string][] = [
+  ["map", "Map"],
+  ["events", "Events"],
+  ["plan", "Guide"],
+  ["legacy", "Legacy"],
+];
+
+/** Full-page menu that covers the screen under the header. */
+function MenuPage({ view, onClose }: { view: View; onClose: () => void }) {
+  // with the events sheet (iteration 4) events live on the map, so there is no Events page to list
+  const pages = useFeature("eventsSheet") ? PAGES.filter(([v]) => v !== "events") : PAGES;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    addEventListener("keydown", onKey);
+    return () => removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <nav
+      id="site-menu"
+      aria-label="Site menu"
+      tabIndex={-1}
+      ref={(el) => el?.focus({ preventScroll: true })}
+      className="bg-background outline-none absolute inset-0 z-40 flex flex-col overflow-y-auto px-4 pt-6 pb-8"
+    >
+      <ul className="m-0 my-auto flex w-full list-none flex-col items-center gap-2 p-0">
+        {pages.map(([v, label]) => {
+          const here = v === view;
+          return (
+            <li key={v}>
+              <Button
+                variant={here ? "secondary" : "ghost"}
+                aria-current={here ? "page" : undefined}
+                onPress={() => {
+                  onClose();
+                  navigate(v);
+                }}
+                className={cx("w-[200px] font-semibold", here ? "bg-default text-foreground" : "text-foreground")}
+              >
+                {label}
+              </Button>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="text-muted pt-8 text-center text-xs">
+        <span className="font-jp text-accent mr-1.5">リトル東京</span>Little Tokyo, Los Angeles
+      </p>
+    </nav>
+  );
+}
+
 /** Desktop-only panel left of the phone: where iteration controls live. */
 function ConfigPanel() {
   const iteration = useApp((s) => s.iteration);
@@ -120,7 +204,7 @@ function ConfigPanel() {
     <Card className="w-[300px] self-start p-6">
       <Card.Header>
         <div className="text-accent text-xs font-semibold tracking-[0.2em] uppercase">Config</div>
-        <Card.Title className="text-lg">Iterations</Card.Title>
+        <Card.Title className="text-xl">Iterations</Card.Title>
       </Card.Header>
       <Card.Content className="gap-3">
         <Select
@@ -146,9 +230,41 @@ function ConfigPanel() {
             </ListBox>
           </Select.Popover>
         </Select>
-        <p className="text-muted m-0 text-[13px] leading-snug">{current.diff}</p>
+        <p className="text-muted m-0 text-sm leading-snug">{current.diff}</p>
+        <PinConfig />
       </Card.Content>
     </Card>
+  );
+}
+
+/** Map pins: how much room each full pin needs before its lower-ranked neighbours shrink to points. */
+function PinConfig() {
+  const space = useApp((s) => s.pinSpace);
+  return (
+    <div className="border-separator mt-2 flex flex-col gap-3 border-t pt-4">
+      <div className="text-foreground text-sm font-semibold">Map pins</div>
+      <p className="text-muted m-0 text-sm leading-snug">
+        Pins keep one size at every zoom. Where they crowd, the highest-ranked ones stay full dots and the rest shrink to small colour points.
+      </p>
+      <Slider value={space} minValue={16} maxValue={96} step={2} onChange={(v) => setPinSpace(v as number)} className="w-full">
+        <div className="flex items-baseline justify-between">
+          <Label className="text-sm font-semibold">Room per pin</Label>
+          <Slider.Output className="text-muted text-sm tabular-nums">{({ state }) => `${state.values[0]} px`}</Slider.Output>
+        </div>
+        <Slider.Track>
+          <Slider.Fill />
+          <Slider.Thumb />
+        </Slider.Track>
+      </Slider>
+      <p className="text-muted m-0 text-xs leading-snug">
+        Less room packs more full pins in; more room turns more of them into points.{" "}
+        {space !== PIN_SPACE_DEFAULT && (
+          <button type="button" className="text-accent font-semibold" onClick={() => setPinSpace(PIN_SPACE_DEFAULT)}>
+            Reset to {PIN_SPACE_DEFAULT} px
+          </button>
+        )}
+      </p>
+    </div>
   );
 }
 
@@ -157,6 +273,9 @@ export default function App() {
   const rawView = useApp((s) => s.view);
   const noAccount = useFeature("noAccount");
   const evSheet = useFeature("eventsSheet");
+  const menuPage = useFeature("menuPage");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
   const dark = useApp((s) => s.dark) && !noAccount; // iteration 4+: always light
   // views that don't exist in this iteration fall back to the map
   const view = (evSheet && rawView === "events") || (noAccount && rawView === "account") ? "map" : rawView;
@@ -164,6 +283,8 @@ export default function App() {
   const getToastContainer = useCallback(() => screenEl ?? document.body, [screenEl]);
   useHashRouter();
   useHostBootstrap();
+  // any navigation (menu item, logo, map links from other views) closes the menu
+  useEffect(() => setMenuOpen(false), [view]);
   useEffect(() => {
     const root = document.documentElement;
     root.classList.toggle("dark", dark);
@@ -182,7 +303,7 @@ export default function App() {
     >
       {!phone && (
         <div className="bg-background text-foreground flex h-[54px] flex-none items-start pt-[11px]">
-          <div className="flex h-[37px] flex-1 items-center justify-center pl-1 text-[17px] leading-none font-semibold tracking-[-0.01em]">
+          <div className="flex h-[37px] flex-1 items-center justify-center pl-1 text-base leading-none font-semibold tracking-[-0.01em]">
             <Clock />
           </div>
           <div className="w-[126px] flex-none" />
@@ -204,8 +325,10 @@ export default function App() {
           </div>
         </div>
       )}
-      {view !== "home" && <SiteHeader view={view} />}
+      {view !== "home" &&
+        (menuPage ? <MenuBar view={view} open={menuOpen} onToggle={() => setMenuOpen((o) => !o)} /> : <SiteHeader view={view} />)}
       <div className="bg-background relative min-h-0 flex-1">
+        {menuPage && menuOpen && view !== "home" && <MenuPage view={view} onClose={closeMenu} />}
         {view === "home" && <section className="absolute inset-0"><HomeView /></section>}
         <section className={cx("absolute inset-0", view !== "map" && "hidden")}>
           <MapView active={view === "map"} />
@@ -217,11 +340,11 @@ export default function App() {
       </div>
       {!phone && (
         <div className="bg-surface-secondary flex flex-none items-center gap-2.5 px-3.5 pt-2 pb-[22px]">
-          <span className="text-muted w-[22px] text-center text-[15px]">‹</span>
-          <div className="bg-default text-foreground/80 flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-[13.5px]">
+          <span className="text-muted w-[22px] text-center text-sm">‹</span>
+          <div className="bg-default text-foreground/80 flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm">
             🔒 {SITE_URL.replace(/^https?:\/\//, "").replace(/\/$/, "")}
           </div>
-          <span className="text-muted w-[22px] text-center text-[15px]">⟳</span>
+          <span className="text-muted w-[22px] text-center text-sm">⟳</span>
         </div>
       )}
       {/* toasts render inside the phone screen (top), not the browser window */}
@@ -235,7 +358,8 @@ export default function App() {
     <div className="bg-background h-dvh w-full">{screen}</div>
   ) : (
     <div className="bg-background-secondary flex min-h-full flex-wrap items-center justify-center gap-10 px-4 py-7">
-      <ConfigPanel />
+      {/* dev only: the production build has no Config panel */}
+      {import.meta.env.DEV && <ConfigPanel />}
       <div className="relative h-[844px] w-[390px] flex-none rounded-[58px] bg-[#0a0a0a] p-3 shadow-[0_40px_90px_rgba(0,0,0,.35),inset_0_0_0_2px_#2a2420]">
         <div className="pointer-events-none absolute top-[23px] left-1/2 z-[60] h-[37px] w-[126px] -translate-x-1/2 rounded-full bg-black" />
         {screen}
@@ -245,7 +369,7 @@ export default function App() {
           <div className="text-accent text-xs font-semibold tracking-[0.2em] uppercase">ACAD-376 · Little Tokyo project</div>
           <Logo className="mt-3 mb-1 rounded-[10px] border-4 px-3.5 pt-1 pb-2 text-[54px] leading-[0.84]" />
           <Card.Title className="sr-only">Little Tokyo</Card.Title>
-          <Card.Description className="text-[15px]">
+          <Card.Description className="text-sm">
             A mobile website for visitors: an interactive map of every shop, restaurant and landmark on the official Little Tokyo
             visitor map, with photos, hours, parking, restrooms, walking directions and an events calendar.
           </Card.Description>
@@ -262,7 +386,7 @@ export default function App() {
           <div className="grid size-[116px] place-items-center rounded-2xl bg-white p-2 shadow-[0_0_0_3px_var(--accent)]">
             <QRCodeSVG value={SITE_URL} size={100} fgColor="#1b2130" bgColor="#ffffff" level="M" />
           </div>
-          <span className="text-muted text-[13px]">Scan to open it on your phone.</span>
+          <span className="text-muted text-sm">Scan to open it on your phone.</span>
         </Card.Footer>
       </Card>
     </div>

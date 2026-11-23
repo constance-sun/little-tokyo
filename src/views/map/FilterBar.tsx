@@ -7,18 +7,19 @@ import type { Cat } from "@/lib/types";
 import { waitOK } from "./engine";
 
 export const CHIPS: [string, string, string | null][] = [
-  ["all", "All", null], ["eat", "Eat", "dining"], ["shop", "Shop", "shop"], ["explore", "Explore", "temple"], ["legacy", "Legacy", "star"],
+  ["eat", "Eat", "dining"], ["shop", "Shop", "shop"], ["explore", "Explore", "temple"], ["legacy", "Legacy", "star"],
   ["open", "Open now", null], ["park", "Parking", "park"], ["wc", "Restrooms", "wc"], ["closed", "Closed / moved", null],
 ];
 export const WAITOPTS: [string, string][] = [["any", "Any wait"], ["10", "Under 10 min"], ["30", "Under 30 min"], ["60", "Under 1 hour"]];
 
 /** Floating pill look shared by the chips and the filter button (they sit on the map, so they need a surface + shadow). */
-const floatPill = "h-8 shrink-0 rounded-full px-3 text-[12.5px] font-semibold shadow-[var(--surface-shadow)]";
+const floatPill = "h-8 shrink-0 rounded-full px-3 text-sm font-semibold shadow-[var(--surface-shadow)]";
 
-/** `front`: chip keys to pull up right after "All" (iteration 4 leads with Parking and Restrooms). */
+/** Single-choice filter chips. There is no "All" chip: tapping the active chip again goes back to showing everything.
+ *  `front`: chip keys to pull up first (iteration 4 leads with Parking and Restrooms). */
 export function Chips({ filter, onPick, front = [] }: { filter: string; onPick: (k: string) => void; front?: string[] }) {
   const chips = front.length
-    ? [CHIPS[0], ...front.map((k) => CHIPS.find((c) => c[0] === k)!), ...CHIPS.slice(1).filter((c) => !front.includes(c[0]))]
+    ? [...front.map((k) => CHIPS.find((c) => c[0] === k)!), ...CHIPS.filter((c) => !front.includes(c[0]))]
     : CHIPS;
   return (
     <div className="no-scrollbar -mx-2.5 flex gap-1.5 overflow-x-auto px-2.5 pt-px pb-1.5">
@@ -66,9 +67,9 @@ export function TypeFilter({
   const waitN = Object.fromEntries(WAITOPTS.map(([k]) => [k, inCat.filter((p) => waitOK(p, k, live)).length]));
   const hasWait = filter === "eat";
   const active = subs.size > 0 || waitF !== "any";
-  const sectLbl = "text-muted px-1 text-[11px] font-semibold tracking-[0.12em] uppercase";
+  const sectLbl = "text-muted px-1 text-xs font-semibold tracking-[0.12em] uppercase";
   const row = "w-full rounded-xl px-1 py-1.5";
-  const line = "flex w-full items-center gap-2.5 text-[13.5px]";
+  const line = "flex w-full items-center gap-2.5 text-sm";
   return (
     <div className="relative flex items-center gap-1.5">
       <Button
@@ -76,7 +77,7 @@ export function TypeFilter({
         variant="tertiary"
         aria-expanded={open}
         onPress={() => setOpen(!open)}
-        className={cx(floatPill, "bg-surface max-w-[78%]", active ? "text-accent shadow-[inset_0_0_0_1.5px_var(--accent),var(--surface-shadow)]" : "text-foreground")}
+        className={cx(floatPill, "bg-surface max-w-[78%]", active ? "text-foreground shadow-[inset_0_0_0_1.5px_var(--foreground),var(--surface-shadow)]" : "text-foreground")}
       >
         <Icon name="filter" size={14} />
         <span className="truncate">{label}</span>
@@ -86,7 +87,7 @@ export function TypeFilter({
         <Button
           size="sm"
           variant="ghost"
-          className="h-8 rounded-full bg-surface/80 px-3 text-[12.5px] font-semibold text-accent"
+          className="h-8 rounded-full bg-surface/80 px-3 text-sm font-semibold text-foreground"
           onPress={() => {
             setSubs(new Set());
             setWaitF("any");
@@ -98,7 +99,7 @@ export function TypeFilter({
       {open && (
         <Surface
           variant="default"
-          className="absolute top-10 left-0 z-[15] flex max-h-[min(70vh,520px)] w-[264px] flex-col gap-1 overflow-y-auto rounded-3xl p-3 shadow-[var(--overlay-shadow)]"
+          className="absolute top-10 left-0 z-[15] flex max-h-[min(70vh,520px)] w-[264px] flex-col gap-1 overflow-y-auto rounded-[24px] p-3 shadow-[var(--overlay-shadow)]"
         >
           {hasWait && (
             <>

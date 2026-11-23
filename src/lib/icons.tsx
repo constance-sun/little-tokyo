@@ -5,7 +5,7 @@ export const ICONS: Record<string, string> = {
   cafe: '<path d="M5 9h11v4.5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5Z"/><path d="M16 10.5h1.2a2.3 2.3 0 0 1 0 4.6H16M8.5 3.5c-.8 1 .8 2 0 3M12 3.5c-.8 1 .8 2 0 3"/>',
   sweets: '<path d="M12 21V3"/><circle cx="12" cy="6.5" r="2.6"/><circle cx="12" cy="11.6" r="2.6"/><circle cx="12" cy="16.7" r="2.6"/>',
   bar: '<path d="M5.5 4h13L12 12Z"/><path d="M12 12v7.5M8.5 20h7"/>',
-  dining: '<path d="M7.5 3v7.5M5 3v4.5a2.5 2.5 0 0 0 5 0V3M7.5 10.5V21M16.5 3c-2.2 1.6-2.2 6.4 0 8.2V21"/>',
+  dining: '<path d="M7.5 3v7.5M5 3v4.5a2.5 2.5 0 0 0 5 0V3M7.5 10.5V21"/><ellipse cx="16.5" cy="6.8" rx="2.6" ry="3.8"/><path d="M16.5 10.6V21"/>', // fork and spoon
   shop: '<path d="M5 8h14l-1.1 12H6.1Z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>',
   books: '<path d="M3.5 5.5c2.6-1.2 5.8-1.2 8.5.6 2.7-1.8 5.9-1.8 8.5-.6v13c-2.6-1.2-5.8-1.2-8.5.6-2.7-1.8-5.9-1.8-8.5-.6Z"/><path d="M12 6.1v13"/>',
   art: '<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.1 0 1.5-.9 1-1.7-.7-1 0-2.1 1.1-2.1h2.4a4 4 0 0 0 4-4c0-5.1-3.8-9.2-8.5-9.2Z"/><path d="M7.5 11h.01M10 7.5h.01M14.5 7.5h.01"/>',
@@ -35,6 +35,11 @@ export const ICONS: Record<string, string> = {
   copy: '<rect x="8" y="8" width="11" height="11" rx="2"/><path d="M5 15V6a1 1 0 0 1 1-1h9"/>',
   mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>',
   search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  close: '<path d="M6 6l12 12M18 6 6 18"/>',
+  compose: '<path d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/><path d="M17.5 3.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/>',
+  send: '<path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/>',
+  expand: '<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>',
 };
 
 export function Icon({

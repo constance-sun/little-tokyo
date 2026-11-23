@@ -47,7 +47,9 @@ export interface Account {
 /** A command for the map view, issued from other views ("show this place", "show this plan"). */
 export type MapCmd =
   | { kind: "open"; id: string; n: number }
-  | { kind: "plan"; plan: Plan; n: number };
+  | { kind: "plan"; plan: Plan; n: number }
+  | { kind: "dir"; id: string; n: number } // walking directions to a place
+  | { kind: "near"; id: string; near: "park" | "wc"; n: number }; // route to the nearest parking/restroom
 
 export interface LiveWait { minutes: number; at: number }
 
@@ -69,7 +71,15 @@ export interface AppState {
   chat: ChatMsg[];
   avoid: string[];
   iteration: string;
+  /** Minimum room between full map pins, in screen px (Config panel slider); crowded pins shrink to points. */
+  pinSpace: number;
 }
+
+export const PIN_SPACE_DEFAULT = 45;
+// the Config panel exists only in dev builds, so production always uses the defaults
+// (a visitor who once picked another iteration or pin spacing isn't stuck on it with no panel)
+const CONFIG = import.meta.env.DEV;
+const savedSpace = CONFIG ? store.get<unknown>("lt-pin-space", PIN_SPACE_DEFAULT) : PIN_SPACE_DEFAULT;
 
 const metro = BY.metro;
 const systemDark = () => typeof matchMedia !== "undefined" && matchMedia("(prefers-color-scheme: dark)").matches;
@@ -93,7 +103,8 @@ let state: AppState = {
   plan: store.get<Plan | null>("lt-plan", null),
   chat: store.get<ChatMsg[]>("lt-chat", []),
   avoid: store.get<string[]>("lt-avoid", []),
-  iteration: store.get<string>("lt-iteration", DEFAULT_ITERATION),
+  iteration: CONFIG ? store.get<string>("lt-iteration", DEFAULT_ITERATION) : DEFAULT_ITERATION,
+  pinSpace: typeof savedSpace === "number" ? savedSpace : PIN_SPACE_DEFAULT,
 };
 
 const subs = new Set<() => void>();
@@ -135,6 +146,16 @@ export function showPlanOnMap(plan: Plan) {
   setState({ mapCmd: { kind: "plan", plan, n: ++cmdN } });
   navigate("map");
 }
+/** Switch to the map with walking directions to a place. */
+export function directionsOnMap(id: string) {
+  setState({ mapCmd: { kind: "dir", id, n: ++cmdN } });
+  navigate("map");
+}
+/** Switch to the map with a route from a place to its nearest parking or restroom. */
+export function nearestOnMap(id: string, near: "park" | "wc") {
+  setState({ mapCmd: { kind: "near", id, near, n: ++cmdN } });
+  navigate("map");
+}
 export const consumeMapCmd = () => setState({ mapCmd: null });
 
 export function setMe(x: number, y: number) {
@@ -157,6 +178,11 @@ export function setIteration(iteration: string) {
   setState({ iteration });
 }
 
+export function setPinSpace(pinSpace: number) {
+  store.set("lt-pin-space", pinSpace);
+  setState({ pinSpace });
+}
+
 export function setSurvey(patch: Partial<Survey>) {
   const survey = { ...state.survey, ...patch };
   store.set("lt-survey", survey);
@@ -174,6 +200,11 @@ export function setPlan(plan: Plan | null) {
 export function setChat(chat: ChatMsg[]) {
   store.set("lt-chat", chat.slice(-30));
   setState({ chat });
+}
+/** Chat Guide: start over (clears the conversation and its plan). */
+export function newChat() {
+  setChat([]);
+  setPlan(null);
 }
 export function addAvoid(id: string) {
   const avoid = [...new Set([...state.avoid, id])];

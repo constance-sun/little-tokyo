@@ -16,7 +16,7 @@ export function OwnerBox({ p }: { p: Place }) {
         <b className="text-foreground text-sm font-semibold">Own this restaurant?</b>
         {lw && <Chip size="sm" variant="soft" color="success">~{lw.minutes} min · {ago(lw.at)}</Chip>}
       </div>
-      <span className="text-muted text-[13px]">Post your current wait so visitors can plan.</span>
+      <span className="text-muted text-sm">Post your current wait so visitors can plan.</span>
       <div className="flex flex-wrap gap-1.5">
         {[0, 10, 20, 30, 45, 60].map((m) => (
           <Button

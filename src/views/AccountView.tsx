@@ -28,7 +28,7 @@ const THEMES: [ThemeMode, string, string][] = [["auto", "Auto", "phone"], ["ligh
 function Panel({ children, className }: { children: ReactNode; className?: string }) {
   return <Card className={cx("gap-3 p-4", className)}>{children}</Card>;
 }
-const Q = ({ children }: { children: ReactNode }) => <div className="font-display text-[16px] font-bold tracking-[-0.02em]">{children}</div>;
+const Q = ({ children }: { children: ReactNode }) => <div className="font-display text-base font-bold tracking-[-0.02em]">{children}</div>;
 
 export default function AccountView() {
   const acct = useApp((s) => s.acct);
@@ -103,7 +103,7 @@ export default function AccountView() {
             value={acct.business || null}
             onChange={(v) => void persistAccount({ business: v ? String(v) : null })}
           >
-            <Label className="font-display text-[16px] font-bold tracking-[-0.02em]">Your business</Label>
+            <Label className="font-display text-base font-bold tracking-[-0.02em]">Your business</Label>
             <Select.Trigger>
               <Select.Value />
               <Select.Indicator />
@@ -125,7 +125,7 @@ export default function AccountView() {
               {biz.cat === "eat" && <OwnerBox p={biz} />}
             </div>
           )}
-          <Card variant="secondary" className="gap-1 p-3 text-[13px]">
+          <Card variant="secondary" className="gap-1 p-3 text-sm">
             <b className="text-foreground font-semibold">Business tools coming soon</b>
             <span className="text-muted">Photos, hours, menus, a note to visitors. We check ownership first.</span>
           </Card>
@@ -150,13 +150,13 @@ export default function AccountView() {
             .map((pl, i) => (
               <Panel key={(pl.savedAt || 0) + "-" + i}>
                 <div className="flex items-baseline justify-between gap-2">
-                  <b className="font-display text-[17px] font-extrabold tracking-[-0.025em]">{pl.title || "My day"}</b>
+                  <b className="font-display text-base font-extrabold tracking-[-0.025em]">{pl.title || "My day"}</b>
                   <Chip size="sm" variant="soft" color="accent">
                     {(pl.date ? new Date(pl.date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }) + " · " : "") +
                       pl.stops.length + " stops"}
                   </Chip>
                 </div>
-                <Note className="text-[12.5px] leading-normal">{pl.stops.map((s) => BY[s.id]?.name).filter(Boolean).join(" → ")}</Note>
+                <Note className="text-sm leading-normal">{pl.stops.map((s) => BY[s.id]?.name).filter(Boolean).join(" → ")}</Note>
                 <div className="flex gap-2">
                   <Button size="sm" className="flex-1" onPress={() => { setPlan(pl); navigate("plan"); }}>Open</Button>
                   <Button size="sm" variant="danger-soft" className="flex-1" onPress={() => void persistAccount({ plans: acct.plans.filter((x) => x !== pl) })}>
@@ -212,19 +212,19 @@ export default function AccountView() {
 
       <Sect>Newsletter</Sect>
       <Panel>
-        <Note className="text-[13px]">Once a month: openings, festivals, old shops.</Note>
+        <Note className="text-sm">Once a month: openings, festivals, old shops.</Note>
         {nl ? (
           <div className="flex flex-col gap-2.5">
             <div className="flex items-center gap-2">
               <Chip size="sm" variant="soft" color="success">✓ Subscribed</Chip>
-              <span className="text-muted truncate text-[13px]">{nl.email}</span>
+              <span className="text-muted truncate text-sm">{nl.email}</span>
             </div>
             <Button size="sm" variant="tertiary" fullWidth onPress={() => void unsubscribeNewsletter()}>Unsubscribe</Button>
           </div>
         ) : (
           <form className="flex items-end gap-2" onSubmit={subscribe}>
             <TextField className="min-w-0 flex-1" type="email" value={email} onChange={setEmail} aria-label="Email for the newsletter">
-              <Input placeholder="you@example.com" variant="secondary" className="text-base" />
+              <Input placeholder="you@example.com" variant="secondary" className="text-sm" />
             </TextField>
             <Button type="submit">Subscribe</Button>
           </form>
