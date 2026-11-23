@@ -65,11 +65,7 @@ Conventions:
 
 ## 1. Frame and navigation
 
-- **Computer (width over 700px, fine pointer).** The site renders inside a 390×844 phone frame with a dynamic island, a status bar with a live LA clock ("9:41" style, refreshed every 30s, with 5G and battery glyphs), and a fake browser bar showing `constance-sun.github.io/little-tokyo`. Beside the frame sits an "about" panel:
-  - an "ACAD-376 · Little Tokyo project" eyebrow and the big boxed logo
-  - a one-paragraph description
-  - four usage tips
-  - a QR code for `https://constance-sun.github.io/little-tokyo/` with a red ring
+- **Computer (width over 700px, fine pointer).** The site renders inside a 390×844 phone frame with a dynamic island, a status bar with a live LA clock ("9:41" style, refreshed every 30s, with 5G and battery glyphs), and a fake browser bar showing `constance-sun.github.io/little-tokyo`. Beside the frame sits just a QR code for `https://constance-sun.github.io/little-tokyo/` on a plain white rounded tile (no ring, no text; it has an `aria-label`). The original's "about" panel (eyebrow, boxed logo, description, usage tips and a red-ringed QR) was removed in the rebuild.
 - **Phone (width 700px or less, or a coarse pointer on a small screen).** The site fills the screen with no frame chrome and respects safe-area insets.
 - **Config panel.** On computers, a "Config" card sits left of the phone frame. It is where iteration controls live. It currently holds one dropdown that tracks the design iteration (stored as `lt-iteration`) and a 1-2 line note on what differs in that iteration. The list is `src/lib/iterations.ts`. Each iteration lists `features` the app reads with `iterationHas(id, feature)`; read them in components with `useFeature(f)` from the store. Iterations 1 and 2 don't change the UI. The features are:
   - `satellite` (iterations 3 and 4)
@@ -423,6 +419,6 @@ These are deliberate. Keep or revisit them on purpose.
 ## 12. Accessibility and motion
 
 - **Labels.** Buttons have `aria-label`s (map controls, pins with the place name, including ones shrunk to points). Menu items set `aria-current`, chips and tiles set `aria-pressed`, and tabs use `role=tab` with `aria-selected`.
-- **Hidden headings.** Screen-reader-only headings exist on the cover page and in the about panel.
+- **Hidden headings.** Screen-reader-only headings exist on the cover page.
 - **Reduced motion.** `prefers-reduced-motion` turns off the stamp animation, camera fly animations, smooth scrolling and the spinner/pulse.
 - **Keyboard and focus.** Hold-to-talk works from the keyboard, and the focus ring uses the accent colour.

@@ -31,14 +31,14 @@ export function PlaceDetailPage({ place, onClose }: { place: Place; onClose: () 
     showRouteBetween: (_a, _b, label) => { onClose(); nearestOnMap(p.id, /restroom/i.test(label || "") ? "wc" : "park"); },
   };
   return (
-    <div role="dialog" aria-modal="true" aria-label={p.name} className="bg-overlay absolute inset-0 z-30 flex flex-col">
-      {/* the ✕ gets its own strip, so the photos start below it */}
-      <div className="flex h-14 flex-none items-center justify-end px-3">
-        <Button isIconOnly variant="secondary" aria-label="Close" onPress={onClose} className="size-9 rounded-full">
-          <Icon name="close" size={18} />
-        </Button>
-      </div>
-      <div ref={boxRef} tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto overscroll-contain outline-none">
+    <div role="dialog" aria-modal="true" aria-label={p.name} className="bg-overlay absolute inset-0 z-30">
+      <div ref={boxRef} tabIndex={-1} className="h-full overflow-y-auto overscroll-contain outline-none">
+        {/* the ✕ sits in its own row above the photos and scrolls away with the page */}
+        <div className="flex h-14 items-center justify-end px-3">
+          <Button isIconOnly variant="ghost" aria-label="Close" onPress={onClose} className="size-10 rounded-full">
+            <Icon name="close" size={20} />
+          </Button>
+        </div>
         <div key={p.id} className="pb-[max(16px,env(safe-area-inset-bottom))]">
           <PlaceSheet p={p} tab={tab} setTab={setTab} actions={actions} />
         </div>

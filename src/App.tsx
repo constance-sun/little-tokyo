@@ -364,31 +364,14 @@ export default function App() {
         <div className="pointer-events-none absolute top-[23px] left-1/2 z-[60] h-[37px] w-[126px] -translate-x-1/2 rounded-full bg-black" />
         {screen}
       </div>
-      <Card className="max-w-[400px] p-6">
-        <Card.Header>
-          <div className="text-accent text-xs font-semibold tracking-[0.2em] uppercase">ACAD-376 · Little Tokyo project</div>
-          <Logo className="mt-3 mb-1 rounded-[10px] border-4 px-3.5 pt-1 pb-2 text-[54px] leading-[0.84]" />
-          <Card.Title className="sr-only">Little Tokyo</Card.Title>
-          <Card.Description className="text-sm">
-            A mobile website for visitors: an interactive map of every shop, restaurant and landmark on the official Little Tokyo
-            visitor map, with photos, hours, parking, restrooms, walking directions and an events calendar.
-          </Card.Description>
-        </Card.Header>
-        <Card.Content>
-          <ul className="text-muted m-0 list-disc pl-[18px] text-sm">
-            <li className="my-0.5">Drag to move the map, scroll or use + / − to zoom</li>
-            <li className="my-0.5">Tap any pin for photos, hours and the business's story</li>
-            <li className="my-0.5">Tap the pin button to set where you are, then get walking times</li>
-            <li className="my-0.5">Plan a day by chatting or talking with the AI planner</li>
-          </ul>
-        </Card.Content>
-        <Card.Footer className="gap-3.5">
-          <div className="grid size-[116px] place-items-center rounded-2xl bg-white p-2 shadow-[0_0_0_3px_var(--accent)]">
-            <QRCodeSVG value={SITE_URL} size={100} fgColor="#1b2130" bgColor="#ffffff" level="M" />
-          </div>
-          <span className="text-muted text-sm">Scan to open it on your phone.</span>
-        </Card.Footer>
-      </Card>
+      {/* beside the phone: just a QR code to open the site on a real phone */}
+      <div
+        role="img"
+        aria-label={`QR code: scan to open ${SITE_URL} on your phone`}
+        className="grid size-[148px] flex-none place-items-center rounded-[24px] bg-white p-3 shadow-[var(--surface-shadow)]"
+      >
+        <QRCodeSVG value={SITE_URL} size={124} fgColor="#1b2130" bgColor="#ffffff" level="M" />
+      </div>
     </div>
   );
 }

@@ -419,8 +419,8 @@ function PlanCard({ plan, onDetails, onMap }: { plan: Plan; onDetails?: (p: Plac
             <div key={s.id + j}>
               <Walk m={wm} />
               <Row marker={<StopDot p={p} />} last={!park && j === stops.length - 1}>
-                {/* chat Guide: photo first, text kept short */}
-                {onDetails && (
+                {/* chat Guide: photo first (none if the place has no photo), text kept short */}
+                {onDetails && p.photos.length > 0 && (
                   <button type="button" onClick={() => onDetails(p)} aria-label={`${p.name} details`} className="mb-2 block w-full p-0">
                     <PlaceThumb p={p} icon={40} className="h-[150px] w-full rounded-[18px]" />
                   </button>
