@@ -19,7 +19,7 @@ npm run typecheck
 ### Deploying
 
 The live site is **GitHub Pages**: `https://constance-sun.github.io/little-tokyo/`. Pushing to `main` deploys it: `.github/workflows/pages.yml` runs `npm ci` and `npm run build`, then publishes `dist/`. Watch it under the repo's Actions tab.
-- One-time repo setting (repo owner only): Settings → Pages → Source = **GitHub Actions**. With the old "Deploy from a branch" setting, Pages serves the raw source, which shows a blank page.
+- One-time repo setting (repo owner only): Settings → Pages → Source = **GitHub Actions**. With the old "Deploy from a branch" setting, Pages serves the raw source, which shows a blank page. Until it is switched, GitHub also runs its own `pages-build-deployment` on every push. The workflow waits for that run to finish and deploys after it, so the built site wins.
 - The site lives under `/little-tokyo/`, so `vite build` uses `base: "/little-tokyo/"` while dev stays at `/` (`vite.config.ts`). Vite rewrites paths in `index.html` and CSS by itself. URLs built in code must go through `asset()` from `src/lib/data.ts` (it prefixes `import.meta.env.BASE_URL`). `IMGS` already does this, so never hard-code `"/images/…"` in JS.
 - To test a production build locally, serve `dist/` under a `little-tokyo/` folder (e.g. copy it to `<tmp>/little-tokyo` and run `python3 -m http.server` in `<tmp>`), then open `/little-tokyo/`.
 - Vercel (`little-tokyo-six.vercel.app`) was the stopgap host. Don't redeploy it: builds now assume `/little-tokyo/`. Delete the Vercel project once Pages is live.
