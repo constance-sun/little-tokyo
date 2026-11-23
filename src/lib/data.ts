@@ -12,7 +12,7 @@ import type { Cat, EventItem, Photo, Place, Wait } from "./types";
    Raw data (extracted from the original single-file site).
    Map geometry: © OpenStreetMap contributors (ODbL). Positions in metres, x east / y south.
    ====================================================================== */
-export const SITE_URL = "https://constance-sun.github.io/little-tokyo/";
+export const SITE_URL = "https://little-tokyo-six.vercel.app/";
 
 export interface Geo {
   bounds: [number, number, number, number];

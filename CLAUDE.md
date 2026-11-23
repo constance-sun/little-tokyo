@@ -16,6 +16,10 @@ npm run preview    # serve the production build
 npm run typecheck
 ```
 
+### Deploying
+
+The live site is **Vercel**: `https://little-tokyo-six.vercel.app` (project `little-tokyo`, linked in `.vercel/`). The QR code and the fake browser bar use `SITE_URL` in `src/lib/data.ts`. To ship, push `main` and run `vercel deploy --prod` (Vercel builds with `npm run build` and serves `dist/`). GitHub Pages is turned off. It used to serve the repo's raw source, which showed a blank page.
+
 ## Stack
 
 - **Vite + React 19 + TypeScript** (strict).
@@ -65,7 +69,7 @@ Conventions:
 
 ## 1. Frame and navigation
 
-- **Computer (width over 700px, fine pointer).** The site renders inside a 390×844 phone frame with a dynamic island, a status bar with a live LA clock ("9:41" style, refreshed every 30s, with 5G and battery glyphs), and a fake browser bar showing `constance-sun.github.io/little-tokyo`. Beside the frame sits just a QR code for `https://constance-sun.github.io/little-tokyo/` on a plain white rounded tile (no ring, no text; it has an `aria-label`). The original's "about" panel (eyebrow, boxed logo, description, usage tips and a red-ringed QR) was removed in the rebuild.
+- **Computer (width over 700px, fine pointer).** The site renders inside a 390×844 phone frame with a dynamic island, a status bar with a live LA clock ("9:41" style, refreshed every 30s, with 5G and battery glyphs), and a fake browser bar showing `little-tokyo-six.vercel.app`. Beside the frame sits just a QR code for `https://little-tokyo-six.vercel.app/` on a plain white rounded tile (no ring, no text; it has an `aria-label`). The original's "about" panel (eyebrow, boxed logo, description, usage tips and a red-ringed QR) was removed in the rebuild.
 - **Phone (width 700px or less, or a coarse pointer on a small screen).** The site fills the screen with no frame chrome and respects safe-area insets.
 - **Config panel.** On computers, a "Config" card sits left of the phone frame. It is where iteration controls live. It currently holds one dropdown that tracks the design iteration (stored as `lt-iteration`) and a 1-2 line note on what differs in that iteration. The list is `src/lib/iterations.ts`. Each iteration lists `features` the app reads with `iterationHas(id, feature)`; read them in components with `useFeature(f)` from the store. Iterations 1 and 2 don't change the UI. The features are:
   - `satellite` (iterations 3 and 4)
