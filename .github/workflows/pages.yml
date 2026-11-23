@@ -11,6 +11,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: read # to see the legacy Pages build (see the deploy job)
 
 # one deploy at a time; a newer push cancels a queued one
 concurrency:
@@ -40,5 +41,18 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # Until the Pages source is switched to "GitHub Actions", GitHub also runs its legacy
+      # "pages build and deployment" on each push, which publishes the raw source (a blank page).
+      # The last deploy wins, so wait for that one to finish first. Harmless once the source is switched.
+      - name: Wait for the legacy Pages build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in $(seq 1 60); do
+            n=$(gh run list -R "${{ github.repository }}" --workflow "pages build and deployment" --commit "${{ github.sha }}" \
+                  --json status --jq '[.[] | select(.status != "completed")] | length' 2>/dev/null || echo 0)
+            [ "$n" = "0" ] && exit 0
+            sleep 5
+          done
       - id: deployment
         uses: actions/deploy-pages@v4
