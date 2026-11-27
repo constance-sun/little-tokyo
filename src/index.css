@@ -234,7 +234,7 @@
   --background: #fff;
   --foreground: #000;
   --surface: #fff;
-  --surface-secondary: #f4f4f4;
+  --surface-secondary: #fff;
   --surface-tertiary: #efefef;
   --overlay: #fff;
   --default: #efefef;
@@ -316,6 +316,23 @@
 }
 :root[data-look="kiosk"] .card {
   border-radius: 24px;
+  box-shadow: var(--surface-shadow);
+}
+/* secondary surfaces are white too, so they keep the kiosk's small shadow to stay apart from the white page
+   (assistant chat bubbles, the route steps, notes, tiles) */
+:root[data-look="kiosk"] .bg-surface-secondary {
+  box-shadow: var(--surface-shadow);
+}
+/* buttons: secondary and tertiary are white with the same shadow instead of chip grey (also buttons that
+   ask for the grey with a bg-default class, like the sheet's ✕ and the menu page's pills) */
+:root[data-look="kiosk"] :is(.button--secondary, .button--tertiary) {
+  --button-bg: #fff;
+  --button-bg-hover: #f7f7f7;
+  --button-bg-pressed: #f0f0f0;
+  box-shadow: var(--surface-shadow);
+}
+:root[data-look="kiosk"] .button.bg-default {
+  background: #fff;
   box-shadow: var(--surface-shadow);
 }
 /* the kiosk's press feedback: a pill grows a touch under your finger */
