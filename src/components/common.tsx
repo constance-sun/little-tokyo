@@ -1,9 +1,9 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Card, Chip } from "@heroui/react";
 import { Icon } from "@/lib/icons";
-import { CATS } from "@/lib/data";
+import { CATS, catColor } from "@/lib/data";
 import { liveWait } from "@/lib/waits";
-import { useApp } from "@/state/store";
+import { useApp, useFeature } from "@/state/store";
 import { cx } from "@/lib/cx";
 import type { Place } from "@/lib/types";
 
@@ -16,7 +16,7 @@ export function CatDot({ p, size = 28, icon = 15, className }: { p: Place; size?
   return (
     <span
       className={cx("inline-grid shrink-0 place-items-center rounded-full", className)}
-      style={{ width: size, height: size, background: CATS[p.cat].color }}
+      style={{ width: size, height: size, background: catColor(p) }}
     >
       <Icon name={p.glyph} size={icon} stroke="#fff" />
     </span>
@@ -27,7 +27,7 @@ export function CatDot({ p, size = 28, icon = 15, className }: { p: Place; size?
 export function PlaceThumb({ p, className, icon = 22 }: { p: Place; className?: string; icon?: number }) {
   const ph = p.photos[0];
   return (
-    <span className={cx("grid shrink-0 place-items-center overflow-hidden", className)} style={ph ? undefined : { background: CATS[p.cat].color }}>
+    <span className={cx("grid shrink-0 place-items-center overflow-hidden", className)} style={ph ? undefined : { background: catColor(p) }}>
       {ph ? <img src={ph.src} alt="" loading="lazy" className="size-full object-cover" /> : <Icon name={p.glyph} size={icon} stroke="#fff" />}
     </span>
   );
@@ -36,8 +36,8 @@ export function PlaceThumb({ p, className, icon = 22 }: { p: Place; className?: 
 /** Page wrapper: a scroll container with the standard padding. */
 export function Page({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className="bg-background h-full overflow-y-auto overscroll-contain">
-      <div className={cx("px-4 pt-5 pb-8", className)}>{children}</div>
+    <div className="lt-page bg-background h-full overflow-y-auto overscroll-contain">
+      <div className={cx("px-4 pt-[calc(1.25rem+var(--bar,0px))] pb-8", className)}>{children}</div>
     </div>
   );
 }
@@ -82,12 +82,35 @@ export function EmptyNote({ children }: { children: ReactNode }) {
   );
 }
 
-/** Legacy badge (gold chip). */
+/** Legacy badge (gold chip; a black pill in the kiosk look). */
 export function LegacyChip({ since, className }: { since?: number | null; className?: string }) {
+  const kiosk = useFeature("kiosk");
+  if (kiosk) return <KioskTag className={cx("bg-foreground text-background", className)}>★ Legacy{since ? ` since ${since}` : ""}</KioskTag>;
   return (
     <Chip size="sm" variant="soft" className={cx("bg-gold-soft text-gold", className)}>
       ★ Legacy{since ? ` · since ${since}` : ""}
     </Chip>
+  );
+}
+
+/** The kiosk's small tag pill (12 px, fully round). Colour it with className or style. */
+export function KioskTag({ children, className, style }: { children: ReactNode; className?: string; style?: CSSProperties }) {
+  return (
+    <span className={cx("inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2.5 text-xs leading-none font-medium whitespace-nowrap", className)} style={style}>
+      {children}
+    </span>
+  );
+}
+
+/** Kiosk look: a place's category as a pill in its colour, with its icon (black on the café yellow). */
+export function CatTag({ p }: { p: Place }) {
+  const col = catColor(p);
+  const cafe = col === "var(--c-cafe)";
+  return (
+    <KioskTag className={cafe ? "text-black" : "text-white"} style={{ background: col }}>
+      <Icon name={p.glyph} size={13} stroke={cafe ? "#000" : "#fff"} />
+      {cafe ? "Cafe" : CATS[p.cat].label}
+    </KioskTag>
   );
 }
 
@@ -102,7 +125,7 @@ export function ListRow({ p, right, onClick }: { p: Place; right: string; onClic
       onClick={onClick}
       className="hover:bg-default/60 -mx-2 grid w-[calc(100%+16px)] grid-cols-[48px_1fr_auto] items-center gap-3 rounded-2xl px-2 py-2 text-left transition-colors"
     >
-      <span className="grid size-12 place-items-center overflow-hidden rounded-[12px]" style={ph ? undefined : { background: CATS[p.cat].color }}>
+      <span className="grid size-12 place-items-center overflow-hidden rounded-[12px]" style={ph ? undefined : { background: catColor(p) }}>
         {ph ? <img src={ph.src} alt="" className="size-full object-cover" /> : <Icon name={p.glyph} size={20} stroke="#fff" />}
       </span>
       <span className="min-w-0">

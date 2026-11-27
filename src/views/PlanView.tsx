@@ -637,12 +637,15 @@ function ChatGuide() {
   let lastPlanAt = -1;
   chat.forEach((m, i) => { if (m.role === "assistant" && m.plan?.stops?.length) lastPlanAt = i; });
   const hasPlan = !!(plan && plan.stops?.length);
+  const kiosk = useFeature("kiosk");
+  // kiosk: suggestions are its dark "Ask next" pills
+  const suggestCls = kiosk ? "kiosk-pill bg-black/75 text-white backdrop-blur-md hover:bg-black/85" : "";
 
   return (
-    <div className="bg-background relative flex h-full flex-col">
+    <div className="lt-page bg-background relative flex h-full flex-col">
       {detail && <PlaceDetailPage place={detail} onClose={closeDetail} />}
       {mapOpen && plan && <PlanMapPage plan={plan} onClose={() => setMapOpen(false)} />}
-      <div ref={logRef} className="relative flex-1 overflow-y-auto overscroll-contain px-4 pt-4 pb-3">
+      <div ref={logRef} className="relative flex-1 overflow-y-auto overscroll-contain px-4 pt-[calc(1rem+var(--bar,0px))] pb-3">
         {!chat.length ? (
           <div className="flex min-h-full flex-col justify-center gap-5 pb-6">
             <div>
@@ -653,7 +656,7 @@ function ChatGuide() {
             </div>
             <div className="flex flex-col items-start gap-2">
               {STARTERS.map((s) => (
-                <Button key={s} variant="secondary" className="h-auto min-h-10 rounded-[18px] py-2 text-left whitespace-normal" onPress={() => void send(s)}>
+                <Button key={s} variant="secondary" className={cx("h-auto min-h-10 rounded-[18px] py-2 text-left whitespace-normal", kiosk && cx(suggestCls, "min-h-11 rounded-full px-5 font-medium"))} onPress={() => void send(s)}>
                   {s}
                 </Button>
               ))}
@@ -684,11 +687,11 @@ function ChatGuide() {
           </div>
         )}
       </div>
-      <div className="border-separator bg-background flex flex-col gap-2 border-t px-3 pt-2 pb-[max(10px,env(safe-area-inset-bottom))]">
+      <div className={cx("flex flex-col gap-2 px-3 pt-2 pb-[max(10px,env(safe-area-inset-bottom))]", kiosk ? "bg-transparent" : "border-separator bg-background border-t")}>
         {hasPlan && (
           <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1">
             {TWEAKS.map((s) => (
-              <Button key={s} size="sm" variant="secondary" className="flex-none rounded-full" isDisabled={v.busy} onPress={() => void send(s)}>
+              <Button key={s} size="sm" variant="secondary" className={cx("flex-none rounded-full", suggestCls)} isDisabled={v.busy} onPress={() => void send(s)}>
                 {s}
               </Button>
             ))}
@@ -701,12 +704,20 @@ function ChatGuide() {
             variant={listening ? "primary" : "secondary"}
             aria-label={v.micOn ? "Stop listening" : "Talk"}
             onPress={() => void toggleMic()}
-            className={cx("size-10 flex-none rounded-full", listening && "pulse-soft")}
+            className={cx("size-10 flex-none rounded-full", kiosk && "kiosk-pill size-11", listening && "pulse-soft")}
           >
             <Icon name="mic" size={20} />
           </Button>
           {/* the field: text box with a small send button inside it on the right */}
-          <div className="bg-field focus-within:ring-foreground/20 flex min-h-10 flex-1 items-end rounded-[20px] shadow-[var(--field-shadow,0_0_0_1px_var(--border))] focus-within:ring-2">
+          <div
+            className={cx(
+              "flex min-h-10 flex-1 items-end rounded-[20px] focus-within:ring-2",
+              // kiosk: its black search pill, white text, and a white round send button
+              kiosk
+                ? "bg-foreground min-h-11 rounded-[22px] shadow-[var(--overlay-shadow)] focus-within:ring-black/20"
+                : "bg-field focus-within:ring-foreground/20 shadow-[var(--field-shadow,0_0_0_1px_var(--border))]",
+            )}
+          >
             <TextArea
               ref={taRef}
               rows={1}
@@ -722,7 +733,10 @@ function ChatGuide() {
                   void send();
                 }
               }}
-              className="max-h-[110px] min-h-10 flex-1 resize-none border-0 bg-transparent py-[10px] pr-1 pl-4 text-sm leading-[1.4] shadow-none ring-0 outline-none focus:ring-0 focus-visible:ring-0"
+              className={cx(
+                "max-h-[110px] min-h-10 flex-1 resize-none border-0 bg-transparent py-[10px] pr-1 pl-4 text-sm leading-[1.4] shadow-none ring-0 outline-none focus:ring-0 focus-visible:ring-0",
+                kiosk && "min-h-11 py-3 text-white placeholder:text-white/70",
+              )}
             />
             <Button
               isIconOnly
@@ -730,7 +744,7 @@ function ChatGuide() {
               aria-label="Send"
               isDisabled={v.busy || !v.draft.trim()}
               onPress={() => void send()}
-              className="m-1 size-8 min-w-8 flex-none rounded-full"
+              className={cx("m-1 size-8 min-w-8 flex-none rounded-full", kiosk && "kiosk-pill size-9 min-w-9 bg-white text-black disabled:opacity-100 disabled:text-black/35")}
             >
               <Icon name="send" size={16} />
             </Button>

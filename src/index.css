@@ -96,6 +96,13 @@
   --ground: #f1f1ef; --street: #ffffff; --casing: #dadada; --plaza: #f4ebe1; --plaza-walk: #f6efe7; --green: #e0e8d8;
   --lot: #e9e9e7; --lot-edge: #d0d0ce; --label: #6a6a6a; --bldg: #e4e4e2; --bldg-edge: #c9c9c7; --bldg-off: #ececea;
   --plaza-label: #c99a5a;
+  /* cafés and sweets: the eat colour, except in the kiosk look */
+  --c-cafe: var(--c-eat);
+  /* event categories */
+  --e-festival: #e0301e; --e-popup: #ff4f6d; --e-music: #9b6bff; --e-theater: #2f8fe0;
+  --e-art: #13a08c; --e-community: #e2a23a; --e-food: #f39a2e; --e-exhibit: #5b7cff;
+  /* the one bright highlight: today on the events week strip, the cover's sun, the oldest legacy year */
+  --pop: var(--accent);
 }
 
 .dark,
@@ -206,4 +213,115 @@
   .checkbox__control {
     border-radius: 5px;
   }
+}
+
+/* ======================================================================
+   Iteration 6, "Kiosk style": the look of the Little Tokyo Directory kiosk
+   (../little-tokyo-kiosk, Figma "Little Tokyo – Selfie Mirror Concepts").
+   App.tsx sets data-look="kiosk" on <html> when the iteration has the `kiosk` feature.
+   - Black ink does the accent's job (primary buttons, the selected state, the route).
+   - Colour comes only from the four categories: food pink, café yellow, culture cyan, shops blue.
+   - Flat white surfaces with the kiosk's small two-layer shadows, -1% tracking, semibold titles.
+   - A faint sky → soft yellow → white wash from the top of the screen (.lt-screen); the status bar, header,
+     menu and pages over it are see-through (.lt-page).
+   These rules are unlayered, so they win over HeroUI's and Tailwind's layered ones.
+   ====================================================================== */
+:root[data-look="kiosk"] {
+  --accent: #000;
+  --accent-foreground: #fff;
+  --focus: #000;
+  --link: #000;
+  --background: #fff;
+  --foreground: #000;
+  --surface: #fff;
+  --surface-secondary: #f4f4f4;
+  --surface-tertiary: #efefef;
+  --overlay: #fff;
+  --default: #efefef;
+  --default-foreground: #000;
+  --muted: rgb(0 0 0 / 0.6);
+  --separator: rgb(0 0 0 / 0.1);
+  --border: rgb(0 0 0 / 0.12);
+  --field-background: #fff;
+  --surface-shadow: 0 2px 6px rgb(0 0 0 / 0.05), 0 1px 2px rgb(0 0 0 / 0.15);
+  --overlay-shadow: 0 2px 12px rgb(0 0 0 / 0.05), 0 1px 4px rgb(0 0 0 / 0.15);
+  --glass: rgb(255 255 255 / 0.8);
+  /* legacy is a black pill in the kiosk, not gold */
+  --gold: #000;
+  --gold-soft: #efefef;
+  /* categories (kiosk tokens: food, cafe, culture, shops; services are greys) */
+  --c-eat: #f00d86; --c-cafe: #ffd11a; --c-shop: #316be9; --c-explore: #13c1e0;
+  --c-park: #52525b; --c-wc: #71717a; --c-metro: #27272a;
+  /* map labels are plain ink */
+  --t-eat: #000; --t-shop: #000; --t-explore: #000; --t-park: #000; --t-wc: #000; --t-metro: #000;
+  /* events take the kiosk's three event colours: food pink, pop-up yellow, everything else culture cyan */
+  --e-festival: #13c1e0; --e-popup: #ffd11a; --e-music: #13c1e0; --e-theater: #13c1e0;
+  --e-art: #13c1e0; --e-community: #13c1e0; --e-food: #f00d86; --e-exhibit: #13c1e0;
+  --pop: #f00d86;
+  /* the kiosk's screen wash, turned over so it comes down from the top, and kept faint: sky, then a
+     soft yellow, gone to white within the first ~360 px (px stops, so it reads the same on any page) */
+  --bg-screen: linear-gradient(180deg, rgb(156 232 255 / 0.4) 0, rgb(255 254 201 / 0.35) 150px, rgb(255 255 255 / 0) 360px);
+}
+:root[data-look="kiosk"] body {
+  letter-spacing: -0.01em;
+}
+/* titles: semibold at -1%, never the heavy display weights */
+:root[data-look="kiosk"] :is(h1, h2, h3, h4, .font-display) {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+:root[data-look="kiosk"] .lt-screen {
+  background-image: var(--bg-screen);
+}
+:root[data-look="kiosk"] .lt-page {
+  background: transparent;
+}
+/* the top bar floats over the page: pages pad their tops by --bar so nothing starts under it */
+:root[data-look="kiosk"] .lt-content {
+  --bar: 60px;
+}
+/* a sticky bar inside a page sits right under the top bar. Chrome measures sticky offsets inside the
+   scroller's top padding (1.25rem + --bar), so pull it back up by the 1.25rem */
+:root[data-look="kiosk"] .lt-stick {
+  top: -1.25rem;
+}
+/* The bar's background (App.tsx MenuBar): instead of a hard bottom edge it fades out and blurs less
+   and less toward its bottom. ::after is the colour (the screen wash over white, lined up with the
+   wash behind it via --wash-off); the three <i> are backdrop blurs of 2 / 5 / 10 px, each masked to
+   a shorter band at the top so the blur builds up the higher you go. */
+.kiosk-bar > i,
+.kiosk-bar::after {
+  position: absolute;
+  inset: 0;
+}
+.kiosk-bar > i:nth-child(1) {
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  mask-image: linear-gradient(to bottom, #000 0, #000 55%, transparent 95%);
+}
+.kiosk-bar > i:nth-child(2) {
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  mask-image: linear-gradient(to bottom, #000 0, #000 40%, transparent 75%);
+}
+.kiosk-bar > i:nth-child(3) {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  mask-image: linear-gradient(to bottom, #000 0, #000 25%, transparent 55%);
+}
+.kiosk-bar::after {
+  content: "";
+  background: var(--bg-screen) 0 calc(-1 * var(--wash-off, 0px)) / 100% 600px no-repeat, #fff;
+  mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.92) 0, rgb(0 0 0 / 0.7) 45%, transparent 100%);
+}
+:root[data-look="kiosk"] .card {
+  border-radius: 24px;
+  box-shadow: var(--surface-shadow);
+}
+/* the kiosk's press feedback: a pill grows a touch under your finger */
+:root[data-look="kiosk"] .kiosk-pill {
+  transition: scale 120ms ease-out, opacity 200ms, filter 200ms;
+}
+:root[data-look="kiosk"] .kiosk-pill:active {
+  scale: 1.05;
 }

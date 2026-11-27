@@ -134,3 +134,73 @@
 .mapbox.gm .g-blds polygon.on.soft { fill: color-mix(in srgb, var(--c) 30%, #fff); stroke: color-mix(in srgb, var(--c) 70%, #fff); stroke-width: 1.2px; }
 .mapbox.gm .g-blds polygon.on { fill: color-mix(in srgb, var(--c) 46%, #fff); stroke: var(--c); stroke-width: 1.8px; }
 .mapbox.gm .g-blds polygon.off { fill: #eceef0; stroke: #dfe1e5; opacity: 1; }
+
+/* ---------------- kiosk look (iteration 6) ----------------
+   The Little Tokyo Directory kiosk's flat map: white ground, pale grey streets with no casing,
+   grey footprints (a building holding a place a shade darker). Only the pins carry colour:
+   teardrops in the category colour with a white border. A black star marks you, routes are a
+   solid black line, and plan stops are numbered in their category colour. */
+[data-look="kiosk"] .mapbox.gm {
+  --ground: #fff; --street: #f2f2f2; --casing: #f2f2f2; --green: #eef5ec;
+  --plaza: #f6f6f6; --plaza-walk: #f2f2f2; --lot: #f0f0f0; --lot-edge: #e4e4e4;
+  --label: rgb(0 0 0 / 0.5); --bldg: #d9d9d9; --bldg-edge: #d9d9d9; --bldg-off: #ececec;
+  --plaza-label: rgb(0 0 0 / 0.45); --halo: #fff;
+}
+[data-look="kiosk"] .mapbox.gm .g-bshadow { display: none; }
+[data-look="kiosk"] .mapbox.gm .g-ctx polygon { fill: #ececec; stroke: none; }
+[data-look="kiosk"] .mapbox.gm .g-streets path[stroke-dasharray] { stroke: #000; stroke-opacity: 0.12; }
+[data-look="kiosk"] .mapbox.gm .g-blds polygon,
+[data-look="kiosk"] .mapbox.gm .g-blds polygon.on.soft { fill: #d9d9d9; stroke: none; }
+[data-look="kiosk"] .mapbox.gm .g-blds polygon.on { fill: #cbcbcb; stroke: none; }
+[data-look="kiosk"] .mapbox.gm .g-blds polygon.off { fill: #ececec; stroke: none; }
+[data-look="kiosk"] .mapbox.gm .g-blds polygon.hl { fill: #bdbdbd !important; stroke: #000 !important; stroke-width: 1.5px !important; }
+[data-look="kiosk"] .mapbox.gm polygon.lotp.on { fill: #e2e2e2; stroke: #c8c8c8; }
+[data-look="kiosk"] .mapbox .g-names { font-weight: 400; letter-spacing: 0.4px; }
+
+/* teardrop pins: the tip sits on the place */
+[data-look="kiosk"] .pin .b {
+  left: -15px; top: -36px; width: 30px; height: 30px; background: none; border: 0; transform-origin: 15px 36px;
+}
+[data-look="kiosk"] .pin .b::before {
+  content: ""; position: absolute; inset: 0; border-radius: 50% 50% 0 50%; transform: rotate(45deg);
+  background: var(--c); border: 3px solid #fff; box-shadow: 0 1px 4px rgb(0 0 0 / 0.15);
+}
+[data-look="kiosk"] .pin .gl { position: relative; }
+[data-look="kiosk"] .pin .l { top: -30px; left: 17px; font-weight: 600; letter-spacing: -0.01em; }
+[data-look="kiosk"] .pin.sel .b { transform: scale(1.25); }
+[data-look="kiosk"] .pin.sel .l { top: -38px; left: 22px; }
+/* services stay small rounded squares, like the kiosk's P / WC glyphs */
+[data-look="kiosk"] .pin:is(.k-park, .k-wc, .k-metro) .b {
+  left: -11px; top: -11px; width: 22px; height: 22px; background: var(--c); border: 2px solid #fff; border-radius: 7px;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.15); transform-origin: 50% 50%;
+}
+[data-look="kiosk"] .pin:is(.k-park, .k-wc, .k-metro) .b::before { display: none; }
+[data-look="kiosk"] .pin:is(.k-park, .k-wc, .k-metro) .l { top: -8px; left: 14px; }
+/* crowded pins: the kiosk's small dots */
+[data-look="kiosk"] .pin.pt .b {
+  left: -6px; top: -6px; width: 12px; height: 12px; background: var(--c); border: 2px solid #fff; border-radius: 50%;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.15); transform: none;
+}
+[data-look="kiosk"] .pin.pt .b::before { display: none; }
+
+/* you are here: a black star with its label above */
+[data-look="kiosk"] .me {
+  width: 30px; height: 30px; margin: -15px 0 0 -15px; background: none; border: 0; border-radius: 0;
+  filter: drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 1px #fff);
+}
+[data-look="kiosk"] .me::before {
+  content: ""; position: absolute; inset: 0; background: #000;
+  clip-path: polygon(50% 2%, 62% 36%, 98% 37%, 69% 59%, 79% 94%, 50% 73%, 21% 94%, 31% 59%, 2% 37%, 38% 36%);
+}
+[data-look="kiosk"] .me span { top: -15px; color: #000; font-size: 12px; font-weight: 500; }
+
+/* routes: one solid black line on a white casing */
+[data-look="kiosk"] .g-route path[stroke-dasharray="0.1 10"] { display: none; }
+[data-look="kiosk"] .g-route path[opacity="0.3"]:not([stroke-dasharray]) { opacity: 1; }
+[data-look="kiosk"] .g-route path[stroke-dasharray="0.1 9"] { stroke-dasharray: 3 7; opacity: 0.5; }
+[data-look="kiosk"] .g-route circle { stroke: #000; }
+[data-look="kiosk"] .stopnum {
+  background: var(--c, #000); border: 3px solid #fff; font-weight: 500; box-shadow: 0 1px 4px rgb(0 0 0 / 0.15);
+}
+[data-look="kiosk"] .stopnum.pk { background: var(--c-park); }
+[data-look="kiosk"] .legtag { background: #000; font-weight: 500; font-size: 13px; letter-spacing: 0; padding: 6px 12px; }

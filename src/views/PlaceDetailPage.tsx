@@ -32,7 +32,7 @@ export function PlaceDetailPage({ place, onClose }: { place: Place; onClose: () 
   };
   return (
     <div role="dialog" aria-modal="true" aria-label={p.name} className="bg-overlay absolute inset-0 z-30">
-      <div ref={boxRef} tabIndex={-1} className="h-full overflow-y-auto overscroll-contain outline-none">
+      <div ref={boxRef} tabIndex={-1} className="h-full overflow-y-auto overscroll-contain pt-[var(--bar,0px)] outline-none">
         {/* the ✕ sits in its own row above the photos and scrolls away with the page */}
         <div className="flex h-14 items-center justify-end px-3">
           <Button isIconOnly variant="ghost" aria-label="Close" onPress={onClose} className="size-10 rounded-full">

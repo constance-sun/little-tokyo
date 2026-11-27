@@ -187,6 +187,10 @@ export const LEGACY = PLACES.filter((p) => p.legacy);
 export const WCS = PLACES.filter((p) => p.cat === "wc");
 export const PARKING = PLACES.filter((p) => p.cat === "park");
 export const POI = (p: Place) => p.cat === "eat" || p.cat === "shop" || p.cat === "explore";
+/** A place's colour: its category's, except cafés and sweets, which have their own (yellow in the kiosk look). */
+export const catColor = (p: Pick<Place, "cat" | "glyphKind">) =>
+  p.cat === "eat" && (p.glyphKind === "cafe" || p.glyphKind === "sweets") ? "var(--c-cafe)" : CATS[p.cat].color;
+
 export const isGone = (p: Place) => p.status === "closed_permanently" || p.status === "moved";
 export const isClosedish = (p: Place) => p.status === "closed_permanently" || p.status === "moved" || p.status === "temp_closed";
 
@@ -194,9 +198,10 @@ export const isClosedish = (p: Place) => p.status === "closed_permanently" || p.
    Events
    ====================================================================== */
 export const ECAT: Record<string, [label: string, icon: string, color: string]> = {
-  festival: ["Festival", "lantern", "#e0301e"], popup: ["Pop-up", "shop", "#ff4f6d"], music: ["Music", "music", "#9b6bff"],
-  theater: ["Theater", "theater", "#2f8fe0"], art: ["Art & film", "art", "#13a08c"], community: ["Community", "people", "#e2a23a"],
-  food: ["Food", "dining", "#f39a2e"], exhibit: ["Exhibit", "museum", "#5b7cff"],
+  // colours are CSS variables (src/index.css) so a design iteration can recolour them
+  festival: ["Festival", "lantern", "var(--e-festival)"], popup: ["Pop-up", "shop", "var(--e-popup)"], music: ["Music", "music", "var(--e-music)"],
+  theater: ["Theater", "theater", "var(--e-theater)"], art: ["Art & film", "art", "var(--e-art)"], community: ["Community", "people", "var(--e-community)"],
+  food: ["Food", "dining", "var(--e-food)"], exhibit: ["Exhibit", "museum", "var(--e-exhibit)"],
 };
 
 /** The place on the map an event happens at, if we know it. */

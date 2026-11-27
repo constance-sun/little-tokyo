@@ -8,7 +8,8 @@ export type Feature =
   | "noAccount" // no account, saving, owner tools or light/dark toggle (always light)
   | "menuPage" // header is the emblem + a Menu button that opens a full-page menu (no tab row)
   | "gmaps" // drawn Google-Maps-style base map; only Little Tokyo's own buildings are coloured
-  | "chatGuide"; // the Guide (Plan a day) page is one full-page AI chat: no survey or hold-to-talk
+  | "chatGuide" // the Guide (Plan a day) page is one full-page AI chat: no survey or hold-to-talk
+  | "kiosk"; // the Little Tokyo Directory kiosk's look: black ink, bright category pills, a flat grey map, a sky wash
 
 export interface Iteration {
   id: string;
@@ -47,6 +48,12 @@ export const ITERATIONS: Iteration[] = [
     name: "5 · Drawn map",
     diff: "Back to a drawn map in Google Maps colours: grey ground, white streets, green parks. Only Little Tokyo's own buildings are coloured, by what's inside. Events go back to their own page, listed in the menu. The Guide is just a chat: describe your day and the plan is built in the conversation.",
     features: ["gmaps", "mapChips", "noAccount", "menuPage", "chatGuide"],
+  },
+  {
+    id: "6",
+    name: "6 · Kiosk style",
+    diff: "The look of the Little Tokyo Directory kiosk: black ink instead of red, bright pink / yellow / cyan / blue category pills, a black pill search bar, a calm grey map with teardrop pins and a black route, and a faint sky-to-white wash from the top of the screen.",
+    features: ["gmaps", "mapChips", "noAccount", "menuPage", "chatGuide", "kiosk"],
   },
 ];
 

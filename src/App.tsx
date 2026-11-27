@@ -117,14 +117,23 @@ function MenuBar({ open, onToggle, view }: { open: boolean; onToggle: () => void
   // the chat Guide's "New chat" lives in the bar so it stays put while the chat scrolls
   const chatGuide = useFeature("chatGuide");
   const hasChat = useApp((s) => s.chat.length > 0);
+  const kiosk = useFeature("kiosk");
   return (
-    <header className="bg-background relative z-30 flex h-[60px] flex-none items-center justify-between px-4">
+    // kiosk: the bar floats over the page (-mb-[60px]) and fades out with a progressive blur instead of a hard edge
+    <header className={cx("lt-page bg-background relative z-30 flex h-[60px] flex-none items-center justify-between px-4", kiosk && "-mb-[60px]")}>
+      {kiosk && (
+        <div aria-hidden className="kiosk-bar pointer-events-none absolute inset-x-0 top-0 -z-10 h-[76px]">
+          <i />
+          <i />
+          <i />
+        </div>
+      )}
       <a href="#home" className="flex items-center" aria-label="Little Tokyo home">
         <img src={asset("/images/emblem.png")} alt="" width={45} height={44} className="size-11 object-contain" />
       </a>
       <div className="flex items-center gap-1">
       {chatGuide && view === "plan" && hasChat && !open && (
-        <Button size="sm" variant="secondary" onPress={newChat}>
+        <Button size="sm" variant="secondary" onPress={newChat} className={cx(kiosk && "kiosk-pill rounded-full")}>
           <Icon name="compose" size={16} /> New chat
         </Button>
       )}
@@ -156,6 +165,7 @@ const PAGES: [View, string][] = [
 function MenuPage({ view, onClose }: { view: View; onClose: () => void }) {
   // with the events sheet (iteration 4) events live on the map, so there is no Events page to list
   const pages = useFeature("eventsSheet") ? PAGES.filter(([v]) => v !== "events") : PAGES;
+  const kiosk = useFeature("kiosk");
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     addEventListener("keydown", onKey);
@@ -167,7 +177,7 @@ function MenuPage({ view, onClose }: { view: View; onClose: () => void }) {
       aria-label="Site menu"
       tabIndex={-1}
       ref={(el) => el?.focus({ preventScroll: true })}
-      className="bg-background outline-none absolute inset-0 z-40 flex flex-col overflow-y-auto px-4 pt-6 pb-8"
+      className="lt-page bg-background outline-none absolute inset-0 z-40 flex flex-col overflow-y-auto px-4 pt-[calc(1.5rem+var(--bar,0px))] pb-8"
     >
       <ul className="m-0 my-auto flex w-full list-none flex-col items-center gap-2 p-0">
         {pages.map(([v, label]) => {
@@ -181,7 +191,11 @@ function MenuPage({ view, onClose }: { view: View; onClose: () => void }) {
                   onClose();
                   navigate(v);
                 }}
-                className={cx("w-[200px] font-semibold", here ? "bg-default text-foreground" : "text-foreground")}
+                className={cx(
+                  "w-[200px] font-semibold",
+                  // kiosk: 52 px pills, the current page in black (like its search bar), the rest chip grey
+                  kiosk ? cx("kiosk-pill h-[52px] rounded-full text-base font-medium", here ? "bg-foreground text-background" : "bg-default text-foreground") : here ? "bg-default text-foreground" : "text-foreground",
+                )}
               >
                 {label}
               </Button>
@@ -274,7 +288,9 @@ export default function App() {
   const noAccount = useFeature("noAccount");
   const evSheet = useFeature("eventsSheet");
   const menuPage = useFeature("menuPage");
+  const kiosk = useFeature("kiosk");
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuShown = menuPage && menuOpen && rawView !== "home";
   const closeMenu = useCallback(() => setMenuOpen(false), []);
   const dark = useApp((s) => s.dark) && !noAccount; // iteration 4+: always light
   // views that don't exist in this iteration fall back to the map
@@ -291,18 +307,25 @@ export default function App() {
     root.setAttribute("data-theme", dark ? "dark" : "light");
     root.style.colorScheme = dark ? "dark" : "light";
   }, [dark]);
+  // iteration 6 restyles the whole site from index.css / map.css under [data-look="kiosk"]
+  useEffect(() => {
+    if (kiosk) document.documentElement.setAttribute("data-look", "kiosk");
+    else document.documentElement.removeAttribute("data-look");
+  }, [kiosk]);
 
   const screen = (
     <div
       ref={setScreenEl}
       className={cx(
-        "bg-background relative isolate flex size-full transform-gpu flex-col overflow-hidden",
+        "lt-screen bg-background relative isolate flex size-full transform-gpu flex-col overflow-hidden",
         !phone && "rounded-[46px]",
         phone && "pt-[env(safe-area-inset-top,0px)]",
       )}
+      // where the top bar starts on the screen, so its copy of the wash lines up with the screen's
+      style={{ "--wash-off": phone ? "env(safe-area-inset-top, 0px)" : "54px" } as React.CSSProperties}
     >
       {!phone && (
-        <div className="bg-background text-foreground flex h-[54px] flex-none items-start pt-[11px]">
+        <div className="lt-page bg-background text-foreground flex h-[54px] flex-none items-start pt-[11px]">
           <div className="flex h-[37px] flex-1 items-center justify-center pl-1 text-base leading-none font-semibold tracking-[-0.01em]">
             <Clock />
           </div>
@@ -327,8 +350,11 @@ export default function App() {
       )}
       {view !== "home" &&
         (menuPage ? <MenuBar view={view} open={menuOpen} onToggle={() => setMenuOpen((o) => !o)} /> : <SiteHeader view={view} />)}
-      <div className="bg-background relative min-h-0 flex-1">
-        {menuPage && menuOpen && view !== "home" && <MenuPage view={view} onClose={closeMenu} />}
+      <div className="lt-page lt-content bg-background relative isolate min-h-0 flex-1">
+        {menuShown && <MenuPage view={view} onClose={closeMenu} />}
+        {/* the menu page is see-through (it shows the screen's wash), so the page under it steps away; the map stays mounted */}
+        {/* opacity, not visibility: the map's own controls set visibility themselves; inert keeps them out of reach */}
+        <div className={cx("absolute inset-0", menuShown && "opacity-0")} inert={menuShown}>
         {view === "home" && <section className="absolute inset-0"><HomeView /></section>}
         <section className={cx("absolute inset-0", view !== "map" && "hidden")}>
           <MapView active={view === "map"} />
@@ -337,6 +363,7 @@ export default function App() {
         {view === "plan" && <section className="absolute inset-0"><PlanView /></section>}
         {view === "legacy" && <section className="absolute inset-0"><LegacyView /></section>}
         {view === "account" && <section className="absolute inset-0"><AccountView /></section>}
+        </div>
       </div>
       {!phone && (
         <div className="bg-surface-secondary flex flex-none items-center gap-2.5 px-3.5 pt-2 pb-[22px]">

@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { Alert, Button, Chip, Table, Tabs } from "@heroui/react";
-import { ListRow, PlaceThumb } from "@/components/common";
+import { CatTag, LegacyChip, ListRow, PlaceThumb } from "@/components/common";
 import { OwnerBox } from "@/views/account/OwnerBox";
-import { CATS, METRO_DESC, PARKING, PLACES, POI, WCS } from "@/lib/data";
+import { CATS, METRO_DESC, PARKING, PLACES, POI, WCS, catColor } from "@/lib/data";
 import { DAYN, DAYS, hoursText, laNow, openState } from "@/lib/hours";
 import { Icon } from "@/lib/icons";
 import { domain, fmtM, fmtMin } from "@/lib/format";
@@ -73,7 +73,7 @@ function PhotoStrip({ p }: { p: Place }) {
       <div className="px-3.5">
         <figure className="bg-surface-secondary relative m-0 h-[160px] w-full overflow-hidden rounded-[22px]">
           <div className="text-muted flex size-full flex-col items-center justify-center gap-2 text-xs font-medium">
-            <span className="grid size-16 place-items-center rounded-full" style={{ background: CATS[p.cat].color }}>
+            <span className="grid size-16 place-items-center rounded-full" style={{ background: catColor(p) }}>
               <Icon name={p.glyph} size={36} stroke="#fff" />
             </span>
             <span>Photo coming soon</span>
@@ -140,6 +140,7 @@ export function PlaceSheet({ p, tab, setTab, actions }: { p: Place; tab: string;
   const ws = p.cat === "eat" ? waitSummary(p, live) : null;
   const isSaved = saved.includes(p.id);
   const noAccount = useFeature("noAccount");
+  const kiosk = useFeature("kiosk");
   return (
     <>
       <PhotoStrip p={p} />
@@ -148,8 +149,15 @@ export function PlaceSheet({ p, tab, setTab, actions }: { p: Place; tab: string;
         {/* one plain subtitle line, then a short list of facts, each on its own row with an icon */}
         <p className="text-muted m-0 mt-1 text-sm">
           {[p.type || CATS[p.cat].label, p.price].filter(Boolean).join(" · ")}
-          {p.legacy && <span className="text-gold font-semibold"> · ★ Legacy{p.since ? " since " + p.since : ""}</span>}
+          {p.legacy && !kiosk && <span className="text-gold font-semibold"> · ★ Legacy{p.since ? " since " + p.since : ""}</span>}
         </p>
+        {/* kiosk: the category pill in its colour and the black legacy pill */}
+        {kiosk && POI(p) && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            <CatTag p={p} />
+            {p.legacy && <LegacyChip since={p.since} />}
+          </div>
+        )}
         <ul className="m-0 mt-3 flex list-none flex-col gap-2 p-0 text-sm">
           {st && (
             <Fact ic="clock">
@@ -513,6 +521,7 @@ export function PlanSheet({
   pv, me, focusLeg, wholeRoute, close, details,
 }: { pv: PlanState; me: Me; focusLeg: (i: number) => void; wholeRoute: () => void; close: () => void; details: (p: Place) => void }) {
   const { legs, active, park, stops } = pv;
+  const kiosk = useFeature("kiosk");
   const total = legs.reduce((t, l) => t + (l.r ? l.r.meters : 0), 0);
   const legIndexFrom = (p: Place) => legs.findIndex((l) => l.a === p);
   const legFrom = (p: Place) => legs.find((l) => l.a === p);
@@ -539,7 +548,13 @@ export function PlanSheet({
     const on = active >= 0 && legs[active].a === p;
     return (
       <div className="grid grid-cols-[30px_52px_1fr_auto] items-center gap-2.5 py-2">
-        <button type="button" onClick={() => focusLeg(i)} className={cx("size-[30px] rounded-full p-0 text-sm font-bold text-white shadow-[var(--surface-shadow)]", num === "P" ? "bg-park" : "bg-accent")}>
+        <button
+          type="button"
+          onClick={() => focusLeg(i)}
+          className={cx("size-[30px] rounded-full p-0 text-sm font-bold text-white shadow-[var(--surface-shadow)]", num === "P" ? "bg-park" : "bg-accent")}
+          // kiosk: numbered in the stop's category colour, as on its map
+          style={kiosk && num !== "P" ? { background: catColor(p) } : undefined}
+        >
           {num}
         </button>
         <button type="button" onClick={() => details(p)} aria-label={`${p.name} details`} className="p-0">

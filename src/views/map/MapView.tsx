@@ -41,6 +41,7 @@ export default function MapView({ active, plan: embedPlan, onClose, onDetails }:
   const satellite = useApp((s) => iterationHas(s.iteration, "satellite"));
   const evMode = useFeature("eventsSheet");
   const chipsMode = useFeature("mapChips");
+  const kiosk = useFeature("kiosk");
 
   const boxRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -79,7 +80,9 @@ export default function MapView({ active, plan: embedPlan, onClose, onDetails }:
 
   const HRef = useRef(H);
   HRef.current = H;
-  const heights = () => heightsFor(engRef.current?.H ?? HRef.current);
+  // kiosk: the top bar floats over the map, so a full sheet stops under it
+  const barH = kiosk ? 60 : 0;
+  const heights = () => heightsFor((engRef.current?.H ?? HRef.current) - barH);
   const evHeights = () => (evModeRef.current ? evHeightsFor(engRef.current?.H ?? HRef.current) : [0, 0, 0, 0]);
   /** Height of whatever sheet covers the bottom of the map (the detail sheet sits over the events sheet). */
   const sheetH = () => Math.max(heights()[sheetStateRef.current] || 0, evHeights()[evStateRef.current] || 0);
@@ -433,6 +436,12 @@ export default function MapView({ active, plan: embedPlan, onClose, onDetails }:
     [],
   );
   const fabCls = "size-11 rounded-full bg-surface text-foreground shadow-[var(--overlay-shadow)]";
+  const pickHit = (p: Place) => {
+    setQ(p.name);
+    setResOpen(false);
+    (document.activeElement as HTMLElement | null)?.blur();
+    openPlace(p);
+  };
 
   return (
     <div className="absolute inset-0" style={{ background: "var(--ground)" }}>
@@ -444,7 +453,7 @@ export default function MapView({ active, plan: embedPlan, onClose, onDetails }:
       </div>
 
       {/* top: search or directions, then chips */}
-      <div className={cx("pointer-events-none absolute top-2.5 left-2.5 z-10 flex flex-col gap-2 *:pointer-events-auto", embed ? "right-14" : "right-2.5")} style={{ visibility: topHidden ? "hidden" : "visible" }}>
+      <div className={cx("pointer-events-none absolute top-[calc(0.625rem+var(--bar,0px))] left-2.5 z-10 flex flex-col gap-2 *:pointer-events-auto", embed ? "right-14" : "right-2.5")} style={{ visibility: topHidden ? "hidden" : "visible" }}>
         {embed ? null : !dir ? (
           <div className="relative">
             <SearchField
@@ -457,11 +466,35 @@ export default function MapView({ active, plan: embedPlan, onClose, onDetails }:
               onClear={() => setResOpen(false)}
               className="w-full"
             >
-              <SearchField.Group className="bg-surface h-10 rounded-full px-1.5 shadow-[var(--overlay-shadow)]">
-                <SearchField.SearchIcon className="ml-2" />
-                <SearchField.Input placeholder="Search Little Tokyo" autoComplete="off" className="text-sm" />
-                <SearchField.ClearButton />
-              </SearchField.Group>
+              {kiosk ? (
+                // the kiosk's search bar: a black pill, white text, and a white round arrow that opens the top match
+                <SearchField.Group className="bg-foreground text-background h-11 rounded-full pr-1 pl-1.5 shadow-[var(--overlay-shadow)]">
+                  <SearchField.SearchIcon className="ml-2 text-white" />
+                  <SearchField.Input
+                    placeholder="Search Little Tokyo"
+                    autoComplete="off"
+                    className="text-sm text-white placeholder:text-white/70"
+                    onKeyDown={(e) => { if (e.key === "Enter" && hits[0]) pickHit(hits[0]); }}
+                  />
+                  <SearchField.ClearButton className="bg-white/20 text-white" />
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    aria-label={hits[0] ? `Open ${hits[0].name}` : "Search"}
+                    isDisabled={!hits[0]}
+                    onPress={() => hits[0] && pickHit(hits[0])}
+                    className="kiosk-pill size-9 min-w-9 flex-none rounded-full bg-white text-black disabled:opacity-100"
+                  >
+                    <Icon name="dir" size={18} className="m-0! size-[18px]!" />
+                  </Button>
+                </SearchField.Group>
+              ) : (
+                <SearchField.Group className="bg-surface h-10 rounded-full px-1.5 shadow-[var(--overlay-shadow)]">
+                  <SearchField.SearchIcon className="ml-2" />
+                  <SearchField.Input placeholder="Search Little Tokyo" autoComplete="off" className="text-sm" />
+                  <SearchField.ClearButton />
+                </SearchField.Group>
+              )}
             </SearchField>
             {resOpen && (
               <Surface className="mt-2 max-h-[330px] overflow-y-auto rounded-[24px] p-1.5 shadow-[var(--overlay-shadow)]">
@@ -471,12 +504,7 @@ export default function MapView({ active, plan: embedPlan, onClose, onDetails }:
                       key={p.id}
                       type="button"
                       className="hover:bg-default/70 flex w-full items-center gap-3 rounded-[18px] px-2.5 py-2 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus)]"
-                      onClick={() => {
-                        setQ(p.name);
-                        setResOpen(false);
-                        (document.activeElement as HTMLElement | null)?.blur();
-                        openPlace(p);
-                      }}
+                      onClick={() => pickHit(p)}
                     >
                       <CatDot p={p} size={32} icon={15} />
                       <span className="min-w-0">

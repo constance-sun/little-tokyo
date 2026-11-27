@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Card, Chip, buttonVariants } from "@heroui/react";
-import { EmptyNote, Note, PageHeader, Sect } from "@/components/common";
+import { EmptyNote, KioskTag, Note, PageHeader, Sect } from "@/components/common";
 import { ECAT, EVENTS, eventVenue } from "@/lib/data";
 import { laToday } from "@/lib/hours";
 import { Icon } from "@/lib/icons";
 import { cx } from "@/lib/cx";
-import { openOnMap } from "@/state/store";
+import { openOnMap, useFeature } from "@/state/store";
 import type { EventItem } from "@/lib/types";
 
 /* ======================================================================
@@ -57,7 +57,39 @@ const PhotoChip = ({ children }: { children: React.ReactNode }) => (
   </Chip>
 );
 
+/** Kiosk look (Figma 23:11031): a white card, the photo inset 8 px with 16 px corners, then the title,
+ *  black tag pills and the dates. */
+function KioskEvCard({ e, onOpen }: { e: EventItem; onOpen: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="kiosk-pill bg-surface flex h-[176px] w-full flex-col rounded-[24px] p-2 text-left shadow-[var(--surface-shadow)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus)]"
+    >
+      <span
+        className="bg-default relative grid min-h-0 w-full flex-1 place-items-center overflow-hidden rounded-2xl bg-cover bg-center"
+        style={e.photo?.src ? { backgroundImage: `url(${e.photo.src})` } : { background: ecol(e.category) }}
+      >
+        {!e.photo?.src && <Icon name={eicon(e.category)} size={40} stroke="rgba(255,255,255,.85)" />}
+      </span>
+      <span className="flex w-full items-center gap-2 px-2.5 pt-2.5 pb-1">
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <b className="truncate text-base leading-tight font-medium">{e.title}</b>
+          <span className="text-muted flex min-w-0 items-center gap-2 text-xs">
+            <KioskTag className="bg-foreground text-background h-5 px-2">{elabel(e.category)}</KioskTag>
+            {unconfirmed(e) && <KioskTag className="bg-foreground text-background h-5 px-2">Date to confirm</KioskTag>}
+            <span className="truncate">{evWhen(e)}</span>
+          </span>
+        </span>
+        <span aria-hidden className="text-muted text-xl leading-none">›</span>
+      </span>
+    </button>
+  );
+}
+
 function EvCard({ e, onOpen }: { e: EventItem; onOpen: () => void }) {
+  const kiosk = useFeature("kiosk");
+  if (kiosk) return <KioskEvCard e={e} onOpen={onOpen} />;
   return (
     <button
       type="button"
@@ -89,7 +121,7 @@ function EvCard({ e, onOpen }: { e: EventItem; onOpen: () => void }) {
 
 function EventDetail({ e, onClose }: { e: EventItem; onClose: () => void }) {
   return (
-    <div className="bg-background absolute inset-0 z-[25] overflow-y-auto overscroll-contain">
+    <div className="bg-background absolute inset-0 z-[25] overflow-y-auto overscroll-contain pt-[var(--bar,0px)]">
       <EventDetailBody e={e} onClose={onClose} />
     </div>
   );
@@ -198,7 +230,7 @@ export default function EventsView() {
   const [open, setOpen] = useState<EventItem | null>(null);
   return (
     <div className="relative h-full">
-      <div className="h-full overflow-y-auto overscroll-contain px-4 pt-5 pb-8">
+      <div className="h-full overflow-y-auto overscroll-contain px-4 pt-[calc(1.25rem+var(--bar,0px))] pb-8">
         <EventsBody onOpen={setOpen} />
       </div>
       {open && <EventDetail e={open} onClose={() => setOpen(null)} />}
@@ -251,6 +283,7 @@ export function EventsBody({ onOpen, compact }: { onOpen: (e: EventItem) => void
   // no "All" chip: tapping the active chip again goes back to everything (same as the map chips)
   const chips: [string, string][] = Object.entries(ECAT).map(([k, v]) => [k, v[0]] as [string, string]);
 
+  const kiosk = useFeature("kiosk");
   const soon = EVENTS.filter((e) => (e.end || e.start) >= today && e.start <= iso(new Date(pd(today).getTime() + 6 * 864e5))).length;
   return (
     <>
@@ -263,7 +296,28 @@ export function EventsBody({ onOpen, compact }: { onOpen: (e: EventItem) => void
           <PageHeader title="What's on" lede="Festivals, pop-ups, shows." />
         )}
         <div className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4 pt-px pb-1">
-          {chips.map(([k, l]) => (
+          {kiosk
+            ? // kiosk: black pills (its event chips); the chosen one shows an ✕ and the rest step back
+              chips.map(([k, l]) => {
+                const on = filter === k;
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    aria-pressed={on}
+                    aria-label={on ? `Clear ${l} filter` : l}
+                    onClick={() => setFilter(on ? "all" : k)}
+                    className={cx(
+                      "kiosk-pill bg-foreground text-background flex h-9 flex-none items-center gap-1.5 rounded-full pr-4 pl-3 text-sm font-medium whitespace-nowrap",
+                      filter !== "all" && !on && "opacity-50 blur-[1px]",
+                    )}
+                  >
+                    <Icon name={on ? "close" : eicon(k)} size={15} />
+                    {l}
+                  </button>
+                );
+              })
+            : chips.map(([k, l]) => (
             <Button
               key={k}
               size="sm"
@@ -310,7 +364,7 @@ export function EventsBody({ onOpen, compact }: { onOpen: (e: EventItem) => void
                       <span
                         className={cx(
                           "grid size-7 place-items-center rounded-full text-sm leading-none font-semibold",
-                          isToday ? "bg-accent text-accent-foreground" : isSel ? "text-accent" : evs.length && !past ? "text-foreground" : "text-muted/70",
+                          isToday ? "bg-[var(--pop)] text-white" : isSel ? "text-accent" : evs.length && !past ? "text-foreground" : "text-muted/70",
                         )}
                       >
                         {pd(day).getUTCDate()}

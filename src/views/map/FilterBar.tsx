@@ -2,7 +2,7 @@ import { Button, Checkbox, Radio, RadioGroup, Separator, Surface } from "@heroui
 import { CATS, PLACES, SUBS, isGone } from "@/lib/data";
 import { Icon } from "@/lib/icons";
 import { cx } from "@/lib/cx";
-import { useApp } from "@/state/store";
+import { useApp, useFeature } from "@/state/store";
 import type { Cat } from "@/lib/types";
 import { waitOK } from "./engine";
 
@@ -21,6 +21,8 @@ export function Chips({ filter, onPick, front = [] }: { filter: string; onPick: 
   const chips = front.length
     ? [...front.map((k) => CHIPS.find((c) => c[0] === k)!), ...CHIPS.filter((c) => !front.includes(c[0]))]
     : CHIPS;
+  const kiosk = useFeature("kiosk");
+  if (kiosk) return <KioskChips chips={chips} filter={filter} onPick={onPick} />;
   return (
     <div className="no-scrollbar -mx-2.5 flex gap-1.5 overflow-x-auto px-2.5 pt-px pb-1.5">
       {chips.map(([k, l, ic]) => {
@@ -38,6 +40,43 @@ export function Chips({ filter, onPick, front = [] }: { filter: string; onPick: 
             {ic && <Icon name={ic} size={14} stroke={on ? "currentColor" : (CATS as Record<string, { color: string }>)[k]?.color || "currentColor"} />}
             {l}
           </Button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Kiosk look (Figma "Little Tokyo – Selfie Mirror Concepts"): solid pills in the category colour with a white
+ *  icon; Legacy is black, Open now and Closed are white. The chosen chip shows an ✕ (tap to clear) and the
+ *  others step back (half opacity, a slight blur) while still tappable. */
+const KIOSK_BG: Record<string, string> = {
+  eat: "var(--c-eat)", shop: "var(--c-shop)", explore: "var(--c-explore)", park: "var(--c-park)", wc: "var(--c-wc)", legacy: "#000",
+};
+function KioskChips({ chips, filter, onPick }: { chips: typeof CHIPS; filter: string; onPick: (k: string) => void }) {
+  const any = chips.some(([k]) => k === filter);
+  return (
+    <div className="no-scrollbar -mx-2.5 flex gap-1.5 overflow-x-auto px-2.5 pt-px pb-2">
+      {chips.map(([k, l, ic]) => {
+        const on = filter === k;
+        const bg = KIOSK_BG[k];
+        return (
+          <button
+            key={k}
+            type="button"
+            aria-pressed={on}
+            aria-label={on ? `Clear ${l} filter` : l}
+            onClick={() => onPick(k)}
+            className={cx(
+              "kiosk-pill flex h-9 shrink-0 items-center gap-1.5 rounded-full pr-4 pl-3 text-sm font-medium whitespace-nowrap shadow-[var(--surface-shadow)]",
+              bg ? "text-white" : "bg-surface text-foreground",
+              !ic && !on && "pl-4",
+              any && !on && "opacity-50 blur-[1px]",
+            )}
+            style={bg ? { background: bg } : undefined}
+          >
+            {on ? <Icon name="close" size={15} /> : ic && <Icon name={ic} size={15} />}
+            {l}
+          </button>
         );
       })}
     </div>

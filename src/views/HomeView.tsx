@@ -2,7 +2,8 @@ import { Button, Chip } from "@heroui/react";
 import { EVENTS, IMGS, LEGACY, PLACES, POI } from "@/lib/data";
 import { laToday } from "@/lib/hours";
 import { cx } from "@/lib/cx";
-import { navigate } from "@/state/store";
+import { Icon } from "@/lib/icons";
+import { navigate, useFeature } from "@/state/store";
 
 const today = laToday();
 const STATS: [string, string][] = [
@@ -13,10 +14,11 @@ const STATS: [string, string][] = [
 
 /** Cover page: a rounded photo card with a red sun behind it, the logo stamped on its corner, and one big button. */
 export default function HomeView() {
+  const kiosk = useFeature("kiosk");
   const vert =
     "text-muted absolute top-[96px] flex flex-row-reverse gap-1.5 text-[9.5px] leading-none font-semibold tracking-[0.38em] uppercase [writing-mode:vertical-rl]";
   return (
-    <div className="bg-background text-foreground absolute inset-0 flex flex-col items-center overflow-hidden px-6 pt-7 pb-6">
+    <div className="lt-page bg-background text-foreground absolute inset-0 flex flex-col items-center overflow-hidden px-6 pt-7 pb-6">
       <div aria-hidden className="font-jp text-accent mb-3 text-xl leading-none font-black tracking-[0.08em] [writing-mode:vertical-rl]">
         東京
       </div>
@@ -30,7 +32,7 @@ export default function HomeView() {
       </div>
 
       <div className="relative max-h-[420px] min-h-[240px] w-[74%] flex-1">
-        <div aria-hidden className="bg-accent absolute -top-[30px] -right-[34px] z-0 size-[118px] rounded-full" />
+        <div aria-hidden className="absolute -top-[30px] bg-[var(--pop)] -right-[34px] z-0 size-[118px] rounded-full" />
         <div
           className="absolute inset-0 z-[1] overflow-hidden rounded-[22px] bg-cover shadow-[var(--overlay-shadow)]"
           style={{ backgroundImage: `url(${IMGS.cover})`, backgroundPosition: "58% center" }}
@@ -58,9 +60,19 @@ export default function HomeView() {
           </Chip>
         ))}
       </div>
-      <Button size="lg" fullWidth className="mt-3 mb-5 h-14 justify-between rounded-full px-6 text-sm font-bold" onPress={() => navigate("map")}>
-        Enter Little Tokyo <span className="text-xl">→</span>
-      </Button>
+      {kiosk ? (
+        // the kiosk's black pill with a white round arrow at its end, like its search bar
+        <Button size="lg" fullWidth className="kiosk-pill mt-3 mb-5 h-14 justify-between rounded-full pr-2 pl-6 text-base font-medium" onPress={() => navigate("map")}>
+          Enter Little Tokyo
+          <span className="grid size-10 place-items-center rounded-full bg-white text-black">
+            <Icon name="dir" size={20} />
+          </span>
+        </Button>
+      ) : (
+        <Button size="lg" fullWidth className="mt-3 mb-5 h-14 justify-between rounded-full px-6 text-sm font-bold" onPress={() => navigate("map")}>
+          Enter Little Tokyo <span className="text-xl">→</span>
+        </Button>
+      )}
     </div>
   );
 }

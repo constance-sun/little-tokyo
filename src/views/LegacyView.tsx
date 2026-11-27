@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 import { Button, Card, Chip } from "@heroui/react";
-import { EmptyNote, Note } from "@/components/common";
+import { EmptyNote, KioskTag, Note } from "@/components/common";
 import { LEGACY } from "@/lib/data";
 import { Icon } from "@/lib/icons";
 import { cx } from "@/lib/cx";
-import { openOnMap } from "@/state/store";
+import { openOnMap, useFeature } from "@/state/store";
 import type { Place } from "@/lib/types";
 
 /* ======================================================================
@@ -33,6 +33,7 @@ const pressable = "outline-none focus-visible:ring-2 focus-visible:ring-[var(--f
 
 export default function LegacyView() {
   const yr = new Date().getFullYear();
+  const kiosk = useFeature("kiosk");
   const dated = LEGACY.filter((p) => p.since).sort((a, b) => a.since! - b.since!);
   const undated = LEGACY.filter((p) => !p.since).sort((a, b) => a.name.localeCompare(b.name));
   const first = dated[0];
@@ -41,7 +42,7 @@ export default function LegacyView() {
   const fph = first?.photos[0];
 
   return (
-    <div className="h-full overflow-y-auto overscroll-contain px-4 pt-5 pb-8">
+    <div className="h-full overflow-y-auto overscroll-contain px-4 pt-[calc(1.25rem+var(--bar,0px))] pb-8">
       {!LEGACY.length ? (
         <EmptyNote>Legacy business list is loading.</EmptyNote>
       ) : (
@@ -50,7 +51,7 @@ export default function LegacyView() {
             <span aria-hidden className="font-jp text-accent pointer-events-none absolute top-0 right-0 text-5xl leading-none font-black tracking-[-0.02em] opacity-90">
               老舗
             </span>
-            <Chip size="sm" variant="soft" className="bg-gold-soft text-gold">★ Legacy businesses</Chip>
+            {kiosk ? <KioskTag className="bg-foreground text-background">★ Legacy businesses</KioskTag> : <Chip size="sm" variant="soft" className="bg-gold-soft text-gold">★ Legacy businesses</Chip>}
             <h1 className="font-display mt-2 mr-[70px] mb-2 text-4xl leading-[0.98] font-extrabold tracking-[-0.045em]">Still here.</h1>
             <p className="text-muted m-0 mr-16 text-sm">Family-run shops and restaurants that have kept Little Tokyo going for generations.</p>
           </header>
@@ -68,7 +69,7 @@ export default function LegacyView() {
                   className="block h-[220px] bg-cover bg-center"
                   style={fph ? { backgroundImage: `url(${fph.src})` } : { background: `var(--c-${first.cat})` }}
                 />
-                <span className="text-accent absolute top-[150px] left-3.5 text-7xl leading-none font-black tracking-[-0.06em] [text-shadow:0_2px_0_var(--surface)]">
+                <span className="absolute top-[150px] left-3.5 text-7xl text-[var(--pop)] leading-none font-black tracking-[-0.06em] [text-shadow:0_2px_0_var(--surface)]">
                   {first.since}
                 </span>
                 <span className="block px-4 pt-9 pb-4">
@@ -81,7 +82,7 @@ export default function LegacyView() {
             </Card>
           )}
 
-          <div className="no-scrollbar bg-background/90 sticky top-0 z-[3] -mx-4 mb-1 flex gap-1.5 overflow-x-auto px-4 py-2.5 backdrop-blur-md">
+          <div className="no-scrollbar bg-background/90 lt-stick sticky top-0 z-[3] -mx-4 mb-1 flex gap-1.5 overflow-x-auto px-4 py-2.5 backdrop-blur-md">
             {decades.map((d) => (
               <JumpBtn key={d} onPress={() => scrollTo("dec" + d)}>{d}s</JumpBtn>
             ))}
@@ -91,7 +92,7 @@ export default function LegacyView() {
           <div className="before:bg-accent/30 relative pl-6 before:absolute before:top-3 before:bottom-3 before:left-[7px] before:w-0.5 before:rounded-full">
             {decades.map((d) => (
               <div key={d}>
-                <div id={"dec" + d} className="relative scroll-mt-16 pt-5 pb-2">
+                <div id={"dec" + d} className="relative scroll-mt-[calc(4rem+var(--bar,0px))] pt-5 pb-2">
                   <span className="bg-accent ring-background absolute top-[26px] -left-6 size-4 rounded-full ring-4" />
                   <b className="font-display text-3xl leading-none font-black tracking-[-0.045em]">{d}s</b>
                   {ERA_NOTES[d] && <p className="text-muted mt-1.5 mb-0 text-sm leading-[1.45]">{ERA_NOTES[d]}</p>}

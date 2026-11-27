@@ -1,5 +1,5 @@
 import { Imagery } from "./imagery";
-import { CATS, GEO, PLACES, POI, isClosedish, isGone } from "@/lib/data";
+import { CATS, GEO, PLACES, POI, catColor, isClosedish, isGone } from "@/lib/data";
 import { isOpen } from "@/lib/hours";
 import { ICONS } from "@/lib/icons";
 import { fmtMin, prefersReducedMotion } from "@/lib/format";
@@ -232,7 +232,7 @@ export class MapEngine {
       world.append(el);
       this.plbls.push(el);
     });
-    this.routeG = sv("g") as SVGGElement;
+    this.routeG = sv("g", { class: "g-route" }) as SVGGElement;
     world.append(this.routeG);
   }
 
@@ -245,7 +245,7 @@ export class MapEngine {
       b.setAttribute("aria-label", p.name);
       const dot = document.createElement("span");
       dot.className = "b";
-      dot.style.setProperty("--c", CATS[p.cat].color);
+      dot.style.setProperty("--c", catColor(p));
       dot.innerHTML = `<span class="gl">${svgIcon(p.glyph, 15)}</span>`;
       const lab = document.createElement("span");
       lab.className = "l";
@@ -523,7 +523,7 @@ export class MapEngine {
     const sb = selected && this.bldOf.get(selected.id);
     if (sb) {
       sb.el.classList.add("hl");
-      sb.el.style.setProperty("--c", CATS[selected!.cat].color);
+      sb.el.style.setProperty("--c", catColor(selected!));
     }
   }
 
@@ -677,6 +677,7 @@ export class MapEngine {
       const n = document.createElement("button") as HTMLButtonElement & { _x: number; _y: number };
       n.type = "button";
       n.className = "stopnum" + (pk ? " pk" : "") + (activeFrom === p ? " on" : "");
+      n.style.setProperty("--c", catColor(p)); // the kiosk look colours stops by category
       n.setAttribute("aria-label", aria);
       n.textContent = label;
       n.addEventListener("click", (e) => { e.stopPropagation(); if (this.moved) return; onStop(p); });
